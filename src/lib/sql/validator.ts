@@ -233,3 +233,46 @@ export function isReadOnlyQuery(sql: string): boolean {
     sqlTrimmed.startsWith('DESCRIBE')
   );
 }
+
+export interface ValidateOptions {
+  readOnly?: boolean;
+  dialect?: string;
+}
+
+export class SQLValidator {
+  validate(
+    sql: string,
+    options: ValidateOptions = {}
+  ): SQLValidationResult & { parameters?: string[] } {
+    const { readOnly = false, dialect = 'pg' } = options;
+
+    // Check for write operations in read-only mode
+    if (readOnly && !isReadOnlyQuery(sql)) {
+      return {
+        isValid: false,
+        errors: [{ message: 'Only SELECT queries are allowed in read-only mode' }],
+        warnings: [],
+        parameters: [],
+      };
+    }
+
+    const result = validateSQL(sql, dialect);
+
+    // Extract parameters (named parameters like :paramName)
+    const paramMatches = sql.match(/:\w+/g) || [];
+    const parameters = [...new Set(paramMatches.map(p => p.slice(1)))];
+
+    return {
+      ...result,
+      parameters,
+    };
+  }
+}
+
+export function validateSQLWithWarnings(
+  sql: string,
+  options: ValidateOptions = {}
+): SQLValidationResult & { parameters?: string[] } {
+  const validator = new SQLValidator();
+  return validator.validate(sql, options);
+}

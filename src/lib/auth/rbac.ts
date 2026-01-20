@@ -186,3 +186,153 @@ export function requireAnyPermission(permissions: string[]) {
     return context;
   };
 }
+
+// Type exports for tests
+export const ResourceType = {
+  REPORT: 'report',
+  CHART: 'chart',
+  DASHBOARD: 'dashboard',
+  QUERY: 'query',
+  DATA_SOURCE: 'data_source',
+  USER: 'user',
+  ROLE: 'role',
+  JOB: 'job',
+} as const;
+
+export const PermissionLevel = {
+  VIEW: 'view',
+  EDIT: 'edit',
+  EXECUTE: 'execute',
+  DELETE: 'delete',
+  ADMIN: 'admin',
+} as const;
+
+export type Permission = string;
+
+// Helper functions that take permissions array directly
+export function hasPermissionArray(permissions: string[], required: string): boolean {
+  // Check for full wildcard
+  if (permissions.includes('*:*')) return true;
+
+  // Check exact match
+  if (permissions.includes(required)) return true;
+
+  // Check resource wildcard
+  const [resource, action] = required.split(':');
+  if (permissions.includes(`${resource}:*`)) return true;
+
+  // Check admin wildcard
+  if (permissions.includes('admin:*') && resource === 'admin') return true;
+
+  return false;
+}
+
+export function hasAnyPermissionArray(permissions: string[], required: string[]): boolean {
+  if (required.length === 0) return false;
+  return required.some((r) => hasPermissionArray(permissions, r));
+}
+
+export function hasAllPermissionsArray(permissions: string[], required: string[]): boolean {
+  if (required.length === 0) return true;
+  return required.every((r) => hasPermissionArray(permissions, r));
+}
+
+export function checkResourceAccess(
+  permissions: string[],
+  resourceType: string,
+  action: string,
+  resource: { id: string; created_by?: string },
+  userId: string
+): boolean {
+  const permission = `${resourceType}:${action}`;
+  const ownPermission = `${resourceType}:${action}:own`;
+  const allPermission = `${resourceType}:${action}:all`;
+
+  // Check full wildcard
+  if (permissions.includes('*:*')) return true;
+
+  // Check resource wildcard
+  if (permissions.includes(`${resourceType}:*`)) return true;
+
+  // Check unscoped permission (grants all access)
+  if (permissions.includes(permission)) return true;
+
+  // Check "all" scoped permission
+  if (permissions.includes(allPermission)) return true;
+
+  // Check "own" scoped permission - only owner can access
+  if (permissions.includes(ownPermission)) {
+    return resource.created_by === userId;
+  }
+
+  return false;
+}
+
+export function filterByPermission<T extends { id: string; created_by?: string }>(
+  permissions: string[],
+  resourceType: string,
+  action: string,
+  resources: T[],
+  userId: string
+): T[] {
+  return resources.filter((resource) =>
+    checkResourceAccess(permissions, resourceType, action, resource, userId)
+  );
+}
+
+// RBACManager class for tests
+export class RBACManager {
+  parsePermission(permission: string): { resource: string; action: string; scope?: string } {
+    const parts = permission.split(':');
+    return {
+      resource: parts[0],
+      action: parts[1] || '*',
+      scope: parts[2],
+    };
+  }
+
+  checkPermission(userPermissions: string[], required: string): boolean {
+    return hasPermissionArray(userPermissions, required);
+  }
+
+  hasAnyPermission(userPermissions: string[], required: string[]): boolean {
+    return hasAnyPermissionArray(userPermissions, required);
+  }
+
+  hasAllPermissions(userPermissions: string[], required: string[]): boolean {
+    return hasAllPermissionsArray(userPermissions, required);
+  }
+
+  checkResourceAccess(
+    userPermissions: string[],
+    resourceType: string,
+    action: string,
+    resource: { id: string; created_by?: string },
+    userId: string
+  ): boolean {
+    return checkResourceAccess(userPermissions, resourceType, action, resource, userId);
+  }
+
+  aggregateRolePermissions(roles: { name: string; permissions: string[] }[]): string[] {
+    const allPermissions = roles.flatMap((r) => r.permissions);
+    return [...new Set(allPermissions)];
+  }
+
+  isAdmin(permissions: string[]): boolean {
+    return permissions.includes('admin:*');
+  }
+
+  isSuperAdmin(permissions: string[]): boolean {
+    return permissions.includes('*:*');
+  }
+
+  isValidPermission(permission: string): boolean {
+    if (!permission || permission.length === 0) return false;
+    const parts = permission.split(':');
+    if (parts.length < 2 || parts.length > 3) return false;
+    return parts.every((p) => p.length > 0);
+  }
+}
+
+// Note: hasPermission, hasAnyPermission, hasAllPermissions are already exported as context-based functions
+// Use hasPermissionArray, hasAnyPermissionArray, hasAllPermissionsArray for array-based checks
