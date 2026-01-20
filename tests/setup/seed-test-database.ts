@@ -10,8 +10,8 @@ import path from 'path';
 import fs from 'fs';
 import { createTestSchema, dropTestSchema, TABLE_NAMES } from './test-database-schema';
 
-const RECORDS_PER_TABLE = 300000;
-const BATCH_SIZE = 5000;
+const RECORDS_PER_TABLE = parseInt(process.env.SEED_RECORDS || '1000', 10);
+const BATCH_SIZE = 500;
 const TEST_DB_PATH = path.join(process.cwd(), 'data', 'test.sqlite');
 
 // Ensure data directory exists
@@ -72,16 +72,21 @@ async function batchInsert(
 }
 
 // Data generators for each table
+// Helper to generate a unique code with index
+function uniqueCode(prefix: string, index: number, length: number = 6): string {
+  return `${prefix}${String(index).padStart(length - prefix.length, '0')}`;
+}
+
 const generators = {
   countries: (index: number) => ({
-    code: faker.string.alpha({ length: 3, casing: 'upper' }) + index.toString().slice(-2),
+    code: uniqueCode('C', index, 6),
     name: faker.location.country() + ` ${index}`,
     region: faker.helpers.arrayElement(['Americas', 'Europe', 'Asia', 'Africa', 'Oceania']),
-    currency_code: faker.string.alpha({ length: 3, casing: 'upper' }),
+    currency_code: uniqueCode('CUR', index % 200, 6), // Max 200 unique currencies per country set
   }),
 
   currencies: (index: number) => ({
-    code: faker.string.alpha({ length: 3, casing: 'upper' }) + index.toString().slice(-2),
+    code: uniqueCode('CUR', index, 6),
     name: faker.finance.currencyName() + ` ${index}`,
     symbol: faker.finance.currencySymbol(),
     exchange_rate: faker.number.float({ min: 0.01, max: 100, fractionDigits: 4 }),
@@ -486,14 +491,22 @@ const generators = {
     };
   },
 
-  monthly_category_sales: (index: number, catCount: number) => ({
-    year: faker.number.int({ min: 2020, max: 2026 }),
-    month: (index % 12) + 1,
-    category_id: faker.number.int({ min: 1, max: Math.min(catCount, RECORDS_PER_TABLE) }),
-    total_orders: faker.number.int({ min: 100, max: 5000 }),
-    total_quantity: faker.number.int({ min: 500, max: 20000 }),
-    total_revenue: faker.number.float({ min: 10000, max: 500000, fractionDigits: 2 }),
-  }),
+  monthly_category_sales: (index: number, catCount: number) => {
+    // Derive unique (year, month, category_id) from index
+    // Max categories per year-month combo: catCount
+    // Total combos: 7 years * 12 months * catCount
+    const month = (index % 12) + 1;
+    const yearOffset = Math.floor(index / 12) % 7;
+    const categoryIndex = Math.floor(index / (12 * 7)) % Math.min(catCount, RECORDS_PER_TABLE);
+    return {
+      year: 2020 + yearOffset,
+      month,
+      category_id: categoryIndex + 1,
+      total_orders: faker.number.int({ min: 100, max: 5000 }),
+      total_quantity: faker.number.int({ min: 500, max: 20000 }),
+      total_revenue: faker.number.float({ min: 10000, max: 500000, fractionDigits: 2 }),
+    };
+  },
 
   customer_lifetime_value: (index: number, custCount: number) => {
     const totalOrders = faker.number.int({ min: 1, max: 100 });
