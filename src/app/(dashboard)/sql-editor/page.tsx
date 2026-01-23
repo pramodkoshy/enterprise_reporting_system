@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Play, Save, FileText, Database, Code } from 'lucide-react';
+import { Play, Save, FileText, Database, Code, AlertCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DataSource } from '@/types/database';
 import type { SchemaInfo, SQLExecutionResponse } from '@/types/api';
@@ -44,29 +44,66 @@ export default function SQLEditorPage() {
   const [queryResult, setQueryResult] = useState<SQLExecutionResponse | null>(null);
   const [validation, setValidation] = useState<SQLValidationResult | null>(null);
   const [executionError, setExecutionError] = useState<string | null>(null);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [schemaWarning, setSchemaWarning] = useState<string | null>(null);
+  const [schemaLogs, setSchemaLogs] = useState<string[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [queryName, setQueryName] = useState('');
   const [queryDescription, setQueryDescription] = useState('');
+  const [pageOffset, setPageOffset] = useState(0);
+  const PAGE_SIZE = 100;
 
-  // Fetch data sources
+  // Fetch data sources (only active ones)
   const { data: dataSources, isLoading: isLoadingDataSources } = useQuery<DataSource[]>({
     queryKey: ['data-sources'],
     queryFn: async () => {
       const res = await fetch('/api/data-sources');
       const data = await res.json();
-      return data.data?.items || [];
+      // Filter to only show active data sources
+      const sources = data.data?.items || [];
+      return sources.filter((ds: DataSource) => ds.is_active);
     },
   });
 
   // Fetch schema for selected data source
-  const { data: schema, isLoading: isLoadingSchema } = useQuery<SchemaInfo>({
+  const { data: schema, isLoading: isLoadingSchema, error: schemaQueryError } = useQuery<{ tables: any[], views: any[], logs?: string[] }>({
     queryKey: ['schema', selectedDataSource],
     queryFn: async () => {
       const res = await fetch(`/api/sql/schema/${selectedDataSource}`);
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Failed to load schema');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Failed to load schema');
+      }
+
+      // Capture logs
+      if (data.data?.logs) {
+        setSchemaLogs(data.data.logs);
+      }
+
+      // Show warning if schema is empty
+      if (data.warning) {
+        toast.warning(data.warning);
+        setSchemaWarning(data.warning);
+        setSchemaError(null);
+      } else {
+        setSchemaWarning(null);
+        setSchemaError(null);
+      }
+
       return data.data;
     },
     enabled: !!selectedDataSource,
+    retry: false,
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load schema';
+      setSchemaError(errorMessage);
+      toast.error(errorMessage);
+    },
   });
 
   // Validate SQL mutation
@@ -86,14 +123,15 @@ export default function SQLEditorPage() {
 
   // Execute SQL mutation
   const executeMutation = useMutation({
-    mutationFn: async (sql: string) => {
+    mutationFn: async ({ sql, offset = 0 }: { sql: string; offset?: number }) => {
       const res = await fetch('/api/sql/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sql,
           dataSourceId: selectedDataSource,
-          limit: 1000,
+          limit: PAGE_SIZE,
+          offset,
         }),
       });
       return res.json();
@@ -102,7 +140,10 @@ export default function SQLEditorPage() {
       if (data.success) {
         setQueryResult(data.data);
         setExecutionError(null);
-        toast.success('Query executed successfully');
+        // Only show success toast on first page load
+        if (pageOffset === 0) {
+          toast.success('Query executed successfully');
+        }
       } else {
         setExecutionError(data.error?.message || 'Query execution failed');
         setQueryResult(null);
@@ -146,7 +187,17 @@ export default function SQLEditorPage() {
       toast.error('Please select a data source');
       return;
     }
-    executeMutation.mutate(sqlContent);
+    setPageOffset(0); // Reset to first page
+    executeMutation.mutate({ sql: sqlContent, offset: 0 });
+  }, [sqlContent, selectedDataSource, executeMutation]);
+
+  const handlePageChange = useCallback((offset: number) => {
+    if (!selectedDataSource) {
+      toast.error('Please select a data source');
+      return;
+    }
+    setPageOffset(offset);
+    executeMutation.mutate({ sql: sqlContent, offset });
   }, [sqlContent, selectedDataSource, executeMutation]);
 
   const handleValidate = useCallback(() => {
@@ -173,21 +224,28 @@ export default function SQLEditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Select value={selectedDataSource} onValueChange={setSelectedDataSource}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select data source" />
-            </SelectTrigger>
-            <SelectContent>
-              {dataSources?.map((ds) => (
-                <SelectItem key={ds.id} value={ds.id}>
-                  <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    {ds.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Select value={selectedDataSource} onValueChange={setSelectedDataSource} disabled={!dataSources || dataSources.length === 0}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={dataSources && dataSources.length === 0 ? 'No active data sources' : 'Select data source'} />
+              </SelectTrigger>
+              <SelectContent>
+                {dataSources?.map((ds) => (
+                  <SelectItem key={ds.id} value={ds.id}>
+                    <div className="flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      {ds.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {dataSources && dataSources.length === 0 && (
+              <div className="absolute top-full mt-1 w-[200px] text-xs text-muted-foreground z-10 bg-background border rounded p-1">
+                No active data sources available
+              </div>
+            )}
+          </div>
 
           <Button variant="outline" onClick={handleValidate} disabled={!sqlContent}>
             <Code className="h-4 w-4 mr-2" />
@@ -255,51 +313,199 @@ export default function SQLEditorPage() {
         </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <SchemaBrowser
-            schema={schema || null}
-            isLoading={isLoadingSchema}
-            onTableClick={handleTableClick}
-            onColumnClick={handleColumnClick}
-          />
+      <ResizablePanelGroup orientation="horizontal" className="h-full rounded-lg border">
+        <ResizablePanel defaultSize={20} minSize={10} maxSize={40} id="schema-browser-panel">
+          <div className="h-full overflow-auto">
+            <SchemaBrowser
+              schema={schema || null}
+              isLoading={isLoadingSchema}
+              onTableClick={handleTableClick}
+              onColumnClick={handleColumnClick}
+            />
+          </div>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={80}>
-          <ResizablePanelGroup direction="vertical">
-            <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={80} minSize={60} id="main-content-panel">
+          <ResizablePanelGroup orientation="vertical" className="h-full">
+            <ResizablePanel defaultSize={50} minSize={20} maxSize={80} id="sql-editor-panel">
               <div className="h-full flex flex-col">
-                <MonacoSQLEditor
-                  value={sqlContent}
-                  onChange={setSqlContent}
-                  onExecute={handleExecute}
-                  height="100%"
-                  className="flex-1"
-                />
+                <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
+                  <h2 className="text-sm font-semibold">SQL Editor</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedDataSource ? dataSources?.find(ds => ds.id === selectedDataSource)?.name : 'No data source selected'}
+                  </span>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <MonacoSQLEditor
+                    value={sqlContent}
+                    onChange={setSqlContent}
+                    onExecute={handleExecute}
+                    height="100%"
+                    className="h-full"
+                    schema={schema || null}
+                  />
+                </div>
               </div>
             </ResizablePanel>
 
             <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize={50}>
+            <ResizablePanel defaultSize={50} minSize={20} maxSize={80} id="results-panel">
               <Tabs defaultValue="results" className="h-full flex flex-col">
-                <TabsList className="mx-2 mt-2">
-                  <TabsTrigger value="results">Results</TabsTrigger>
-                  <TabsTrigger value="validation">Validation</TabsTrigger>
-                </TabsList>
+                <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
+                  <TabsList>
+                    <TabsTrigger value="results">Results</TabsTrigger>
+                    <TabsTrigger value="validation">Validation</TabsTrigger>
+                    <TabsTrigger value="schema">Schema</TabsTrigger>
+                    <TabsTrigger value="logs">Logs</TabsTrigger>
+                  </TabsList>
+                </div>
 
-                <TabsContent value="results" className="flex-1 p-4 overflow-auto">
+                <TabsContent value="results" className="flex-1 min-h-0 p-4 overflow-auto data-[state=active]:flex">
+                  {!queryResult && !executionError && !executeMutation.isPending && (
+                    <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                      <div className="text-center">
+                        <Play className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">Run a query to see results here</p>
+                      </div>
+                    </div>
+                  )}
                   <QueryResults
                     result={queryResult}
                     isLoading={executeMutation.isPending}
                     error={executionError}
+                    onPageChange={handlePageChange}
                   />
                 </TabsContent>
 
-                <TabsContent value="validation" className="flex-1 p-4 overflow-auto">
+                <TabsContent value="validation" className="flex-1 min-h-0 p-4 overflow-auto data-[state=active]:flex">
+                  {!validation && (
+                    <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                      <div className="text-center">
+                        <Code className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">Click Validate to check your SQL syntax</p>
+                      </div>
+                    </div>
+                  )}
                   <ValidationPanel validation={validation} />
+                </TabsContent>
+
+                <TabsContent value="schema" className="flex-1 min-h-0 p-4 overflow-auto data-[state=active]:flex">
+                  {!selectedDataSource && (
+                    <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                      <div className="text-center">
+                        <Database className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">No data source selected</p>
+                        <p className="text-xs mt-1">Select a data source from the dropdown above</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedDataSource && isLoadingSchema && (
+                    <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                      <div className="text-center">
+                        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-sm">Loading schema...</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedDataSource && !isLoadingSchema && schema && (
+                    <div className="space-y-4 overflow-auto">
+                      <div className="flex items-center gap-2">
+                        <Database className="h-5 w-5 text-green-600" />
+                        <div>
+                          <h3 className="font-semibold">Schema Loaded Successfully</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {schema.tables.length} tables, {schema.views.length} views found
+                          </p>
+                        </div>
+                      </div>
+                      {schema.tables.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2">Tables:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {schema.tables.map((table) => (
+                              <span
+                                key={table.name}
+                                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-sm"
+                              >
+                                {table.name} <span className="text-xs opacity-70">({table.columns.length} cols)</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {schema.views.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2">Views:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {schema.views.map((view) => (
+                              <span
+                                key={view.name}
+                                className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-md text-sm"
+                              >
+                                {view.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {schemaError && (
+                    <div className="p-4 rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-red-800 dark:text-red-400">Schema Error</h4>
+                          <p className="text-sm text-red-700 dark:text-red-400 mt-1">{schemaError}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {schemaWarning && (
+                    <div className="p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-400">Schema Warning</h4>
+                          <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">{schemaWarning}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="logs" className="flex-1 min-h-0 p-4 overflow-auto data-[state=active]:flex">
+                  <div className="space-y-2 w-full">
+                    {schemaLogs.length === 0 ? (
+                      <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+                        <div className="text-center">
+                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                          <p className="text-sm">No logs available</p>
+                          <p className="text-xs mt-1">Select a data source to see schema loading logs</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="font-mono text-xs space-y-1">
+                        {schemaLogs.map((log, index) => (
+                          <div
+                            key={index}
+                            className={`p-2 rounded ${
+                              log.includes('ERROR') || log.includes('failed')
+                                ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                                : log.includes('WARN') || log.includes('Warning')
+                                ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400'
+                                : 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400'
+                            }`}
+                          >
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
             </ResizablePanel>

@@ -26,16 +26,6 @@ declare module 'next-auth' {
   }
 }
 
-declare module '@auth/core/jwt' {
-  interface JWT {
-    id: string;
-    email: string;
-    displayName: string;
-    roles: string[];
-    permissions: string[];
-  }
-}
-
 async function getUserWithRoles(email: string): Promise<{
   user: User;
   roles: Role[];
@@ -95,7 +85,7 @@ const authConfig: NextAuthConfig = {
           email: user.email,
           displayName: user.display_name,
           roles: roles.map((r) => r.name),
-          permissions: [...new Set(permissions)],
+          permissions: Array.from(new Set(permissions)),
         };
       },
     }),
@@ -112,11 +102,11 @@ const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id;
-      session.user.email = token.email;
-      session.user.name = token.displayName;
-      session.user.roles = token.roles;
-      session.user.permissions = token.permissions;
+      session.user.id = token.id as string;
+      session.user.email = token.email as string;
+      session.user.name = token.displayName as string;
+      session.user.roles = (token.roles as string[]) ?? [];
+      session.user.permissions = (token.permissions as string[]) ?? [];
       return session;
     },
   },

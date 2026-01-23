@@ -1,22 +1,43 @@
 import type { Knex } from 'knex';
 import type { SchemaInfo, TableInfo, ViewInfo, ColumnSchema, ForeignKeyInfo, IndexInfo } from '@/types/api';
 
-export async function introspectSchema(connection: Knex, dialect: string): Promise<SchemaInfo> {
+interface IntrospectionResult {
+  schema: SchemaInfo;
+  logs: string[];
+}
+
+export async function introspectSchema(connection: Knex, dialect: string): Promise<IntrospectionResult> {
+  const logs: string[] = [];
+
+  const addLog = (message: string) => {
+    logs.push(`[${new Date().toISOString()}] ${message}`);
+    console.log(message);
+  };
+
+  const result = await introspectSchemaInternal(connection, dialect, addLog);
+
+  return {
+    schema: result,
+    logs,
+  };
+}
+
+async function introspectSchemaInternal(connection: Knex, dialect: string, addLog: (msg: string) => void): Promise<SchemaInfo> {
   switch (dialect) {
     case 'pg':
-      return introspectPostgres(connection);
+      return introspectPostgres(connection, addLog);
     case 'mysql':
-      return introspectMySQL(connection);
+      return introspectMySQL(connection, addLog);
     case 'sqlite3':
-      return introspectSQLite(connection);
+      return introspectSQLite(connection, addLog);
     case 'mssql':
-      return introspectMSSQL(connection);
+      return introspectMSSQL(connection, addLog);
     default:
-      return introspectGeneric(connection);
+      return introspectGeneric(connection, addLog);
   }
 }
 
-async function introspectPostgres(connection: Knex): Promise<SchemaInfo> {
+async function introspectPostgres(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
   // Get tables
   const tables = await connection.raw(`
     SELECT table_name, table_schema
@@ -182,7 +203,7 @@ async function getPostgresIndexes(
   }));
 }
 
-async function introspectMySQL(connection: Knex): Promise<SchemaInfo> {
+async function introspectMySQL(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
   const tables = await connection.raw(`
     SELECT table_name
     FROM information_schema.tables
@@ -232,7 +253,19 @@ async function getMySQLColumns(connection: Knex, table: string): Promise<ColumnS
   }));
 }
 
-async function introspectSQLite(connection: Knex): Promise<SchemaInfo> {
+async function introspectSQLite(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
+  addLog('Starting SQLite schema introspection');
+
+  // First, check if we can query the database at all
+  try {
+    await connection.raw('SELECT 1');
+    addLog('Database connection test successful');
+  } catch (error) {
+    addLog(`SQLite connection test failed: ${error}`);
+    console.error('SQLite connection test failed:', error);
+    return { tables: [], views: [] };
+  }
+
   const tables = await connection.raw(`
     SELECT name FROM sqlite_master
     WHERE type = 'table'
@@ -246,28 +279,100 @@ async function introspectSQLite(connection: Knex): Promise<SchemaInfo> {
     ORDER BY name
   `);
 
+  // Debug: Inspect the raw result structure
+  addLog(`Tables result type: ${typeof tables}`);
+  addLog(`Tables result isArray: ${Array.isArray(tables)}`);
+  addLog(`Tables result: ${JSON.stringify(tables).substring(0, 200)}...`);
+
+  // better-sqlite3 with Knex returns results in different formats
+  // Try to extract the actual array of results
+  let tableList: any[] = [];
+
+  // Try various possible formats
+  if (Array.isArray(tables) && tables.length > 0 && typeof tables[0] === 'object') {
+    // Array of objects
+    tableList = tables;
+    addLog(`Extracted ${tableList.length} tables as direct array`);
+  } else if (tables?.rows && Array.isArray(tables.rows)) {
+    tableList = tables.rows;
+    addLog(`Extracted ${tableList.length} tables from .rows property`);
+  } else if (tables?.[0] && Array.isArray(tables[0])) {
+    tableList = tables[0];
+    addLog(`Extracted ${tableList.length} tables from nested array`);
+  } else if (typeof tables === 'object' && tables !== null) {
+    // Try to find the array in the object
+    const values = Object.values(tables);
+    for (const val of values) {
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+        tableList = val;
+        addLog(`Extracted ${tableList.length} tables from object values`);
+        break;
+      }
+    }
+  }
+
+  addLog(`Final tableList length: ${tableList.length}`);
+
+  let viewList: any[] = [];
+  if (Array.isArray(views)) {
+    viewList = views;
+  } else if (views?.rows && Array.isArray(views.rows)) {
+    viewList = views.rows;
+  } else if (views?.[0] && Array.isArray(views[0])) {
+    viewList = views[0];
+  } else if (typeof views === 'object' && views !== null) {
+    const values = Object.values(views);
+    for (const val of values) {
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+        viewList = val;
+        break;
+      }
+    }
+  }
+
+  addLog(`Found ${viewList.length} views`);
+
   const tableInfos: TableInfo[] = await Promise.all(
-    tables.map(async (t: { name: string }) => {
-      const columns = await getSQLiteColumns(connection, t.name);
+    tableList.map(async (t: { name: string } | any) => {
+      const tableName = typeof t === 'string' ? t : t.name;
+      addLog(`Processing table: ${tableName}`);
+      const columns = await getSQLiteColumns(connection, tableName, addLog);
       return {
-        name: t.name,
+        name: tableName,
         columns,
       };
     })
   );
 
-  const viewInfos: ViewInfo[] = views.map((v: { name: string; sql: string }) => ({
-    name: v.name,
+  const viewInfos: ViewInfo[] = viewList.map((v: { name: string; sql: string } | any) => ({
+    name: typeof v === 'string' ? v : v.name,
     columns: [],
-    definition: v.sql,
+    definition: typeof v === 'string' ? undefined : v.sql,
   }));
+
+  addLog(`Schema introspection complete: ${tableInfos.length} tables, ${viewInfos.length} views`);
 
   return { tables: tableInfos, views: viewInfos };
 }
 
-async function getSQLiteColumns(connection: Knex, table: string): Promise<ColumnSchema[]> {
+async function getSQLiteColumns(connection: Knex, table: string, addLog: (msg: string) => void): Promise<ColumnSchema[]> {
   const result = await connection.raw(`PRAGMA table_info(??)`, [table]);
-  return result.map((c: {
+
+  addLog(`Fetching columns for table: ${table}`);
+
+  // Handle different result formats from better-sqlite3
+  let columns: any[] = [];
+  if (Array.isArray(result)) {
+    columns = result;
+  } else if (result?.rows && Array.isArray(result.rows)) {
+    columns = result.rows;
+  } else if (result?.[0] && Array.isArray(result[0])) {
+    columns = result[0];
+  }
+
+  addLog(`Found ${columns.length} columns for table: ${table}`);
+
+  return columns.map((c: {
     name: string;
     type: string;
     notnull: number;
@@ -275,14 +380,14 @@ async function getSQLiteColumns(connection: Knex, table: string): Promise<Column
     pk: number;
   }) => ({
     name: c.name,
-    type: c.type,
+    type: c.type || 'ANY',
     nullable: c.notnull === 0,
     defaultValue: c.dflt_value,
     isPrimaryKey: c.pk === 1,
   }));
 }
 
-async function introspectMSSQL(connection: Knex): Promise<SchemaInfo> {
+async function introspectMSSQL(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
   const tables = await connection.raw(`
     SELECT table_name, table_schema
     FROM information_schema.tables
@@ -354,7 +459,7 @@ async function getMSSQLColumns(
   }));
 }
 
-async function introspectGeneric(connection: Knex): Promise<SchemaInfo> {
+async function introspectGeneric(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
   // Basic fallback for unknown databases
   return { tables: [], views: [] };
 }

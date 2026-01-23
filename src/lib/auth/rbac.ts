@@ -124,7 +124,7 @@ export async function getAccessibleResourceIds(
     .whereIn('permission_level', validLevels)
     .select('resource_id');
 
-  return [...new Set(permissions.map((p) => p.resource_id))];
+  return Array.from(new Set(permissions.map((p) => p.resource_id)));
 }
 
 export async function grantResourcePermission(

@@ -370,7 +370,11 @@ export type ResourceType =
   | 'query'
   | 'report'
   | 'chart'
-  | 'dashboard';
+  | 'dashboard'
+  | 'job'
+  | 'queue'
+  | 'user'
+  | 'role';
 
 export type PermissionLevel = 'view' | 'edit' | 'execute' | 'admin';
 
@@ -390,7 +394,11 @@ export type AuditAction =
   | 'delete'
   | 'execute'
   | 'view'
-  | 'export';
+  | 'export'
+  | 'retry'
+  | 'pause'
+  | 'resume'
+  | 'clean';
 
 export interface AuditLog {
   id: string;

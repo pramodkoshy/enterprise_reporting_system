@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { getDb } from '@/lib/db/config';
-import { addJob } from '@/lib/jobs/queue';
+import { addJob } from '@/lib/queue';
 import { logAudit } from '@/lib/security/audit';
 import { v4 as uuidv4 } from 'uuid';
 import type { JobDefinition, JobExecution } from '@/types/database';
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const db = getDb();
     const executionId = uuidv4();
 
-    await db<JobExecution>('job_executions').insert({
+    await db('job_executions').insert({
       id: executionId,
       job_definition_id: null,
       status: 'pending',

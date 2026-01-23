@@ -12,7 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, LogOut, Moon, Settings, Sun, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Bell, LogOut, Moon, Settings, Sun, User, Database, Loader2 } from 'lucide-react';
+import { useActiveDataSource } from '@/lib/hooks/use-active-datasource';
+import { useRouter } from 'next/navigation';
 
 interface User {
   name?: string | null;
@@ -26,6 +29,8 @@ interface HeaderProps {
 
 export function Header({ user }: HeaderProps) {
   const { theme, setTheme } = useTheme();
+  const { activeDataSource, isLoading } = useActiveDataSource();
+  const router = useRouter();
 
   const initials = user.name
     ?.split(' ')
@@ -36,7 +41,36 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6">
       <div className="flex items-center gap-4">
-        {/* Search could go here */}
+        {/* Active Data Source */}
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading connection...</span>
+          </div>
+        ) : activeDataSource ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => router.push('/data-sources')}
+          >
+            <Database className="h-4 w-4 text-green-500" />
+            <span>{activeDataSource.name}</span>
+            <Badge variant="secondary" className="text-xs">
+              {activeDataSource.client_type}
+            </Badge>
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => router.push('/data-sources')}
+          >
+            <Database className="h-4 w-4 text-muted-foreground" />
+            <span>No connection</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

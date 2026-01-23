@@ -63,8 +63,17 @@ export function SchemaBrowser({
 
   if (!schema) {
     return (
-      <div className="flex items-center justify-center h-full p-4">
-        <div className="text-muted-foreground">No data source selected</div>
+      <div className="h-full flex flex-col">
+        <div className="p-2 border-b">
+          <Input
+            placeholder="Search tables..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8"
+            disabled
+          />
+        </div>
+        {/* Empty - schema status shown in bottom panel tabs */}
       </div>
     );
   }
@@ -119,8 +128,8 @@ export function SchemaBrowser({
           )}
 
           {filteredTables.length === 0 && filteredViews.length === 0 && (
-            <div className="text-center text-muted-foreground py-4">
-              No tables or views found
+            <div className="text-center text-muted-foreground py-4 px-2">
+              {/* Empty - warnings shown in the panel below the editor */}
             </div>
           )}
         </div>

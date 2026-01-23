@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
-import { getQueueStatus } from '@/lib/jobs/queue';
+import { getQueueStatus } from '@/lib/queue';
 
 export async function GET(request: NextRequest) {
   try {

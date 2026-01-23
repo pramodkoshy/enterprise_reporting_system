@@ -29,27 +29,52 @@ export async function GET(
 
     if (!dataSource) {
       return NextResponse.json(
-        { success: false, error: { code: 'NOT_FOUND', message: 'Data source not found' } },
+        { success: false, error: { code: 'NOT_FOUND', message: 'Data source not found or not active' } },
         { status: 404 }
       );
     }
 
     // Get connection and introspect schema
     const connection = await getConnection(dataSource);
-    const schema = await introspectSchema(connection, dataSource.client_type);
+    const { schema, logs } = await introspectSchema(connection, dataSource.client_type);
+
+    // Check if schema is empty and provide helpful message
+    if (schema.tables.length === 0 && schema.views.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: { ...schema, logs },
+        warning: 'No tables or views found in this database. The database may be empty or you may not have permission to access the tables.',
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      data: schema,
+      data: { ...schema, logs },
     });
   } catch (error) {
     console.error('Schema introspection error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Provide more helpful error messages
+    if (errorMessage.includes('SQLITE_CANTOPEN')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'DATABASE_NOT_FOUND',
+            message: 'Database file not found. Please check the file path in the data source configuration.',
+          },
+        },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: {
           code: 'INTROSPECTION_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          message: errorMessage,
         },
       },
       { status: 500 }

@@ -61,7 +61,7 @@ export async function getAuditLogs(options: {
   }
 
   const countResult = await query.clone().count('* as count').first();
-  const total = Number(countResult?.count || 0);
+  const total = Number((countResult as { count?: string })?.count || 0);
 
   const logs = await query
     .orderBy('created_at', 'desc')

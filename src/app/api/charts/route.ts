@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       .offset(page * pageSize);
 
     const countResult = await db<ChartDefinition>('chart_definitions').count('* as count').first();
-    const total = Number(countResult?.count || 0);
+    const total = Number((countResult as { count?: string })?.count || 0);
 
     return NextResponse.json({
       success: true,

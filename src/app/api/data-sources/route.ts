@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const db = getDb();
     const dataSources = await db<DataSource>('data_sources')
-      .where('is_active', true)
+      .where('is_deleted', false)
       .orderBy('name');
 
     // Remove sensitive connection info
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       id,
       name,
       description,
-      client_type: clientType,
+      client_type: clientType as any,
       connection_config: encrypt(JSON.stringify(connectionConfig)),
       created_by: session.user.id,
     });

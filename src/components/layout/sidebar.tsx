@@ -25,6 +25,7 @@ import {
   Users,
   Shield,
   Terminal,
+  Layers,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -44,6 +45,7 @@ const mainNavItems = [
 
 const adminNavItems = [
   { href: '/data-sources', label: 'Data Sources', icon: Database },
+  { href: '/bull-board', label: 'Queue Management', icon: Layers },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/roles', label: 'Roles', icon: Shield },
   { href: '/settings', label: 'Settings', icon: Settings },

@@ -71,11 +71,11 @@ export async function seed(knex: Knex): Promise<void> {
 
   // Create admin user
   const adminUserId = uuidv4();
-  const passwordHash = await bcrypt.hash('admin123', 10);
+  const passwordHash = await bcrypt.hash('admin', 10);
 
   await knex('users').insert({
     id: adminUserId,
-    email: 'admin@example.com',
+    email: 'admin@admin.com',
     password_hash: passwordHash,
     display_name: 'System Administrator',
     is_active: true,
@@ -105,6 +105,10 @@ export async function seed(knex: Knex): Promise<void> {
   });
 
   console.log('Seed data created successfully');
-  console.log('Admin user: admin@example.com / admin123');
+  console.log('=================================');
+  console.log('DEFAULT ADMIN CREDENTIALS:');
+  console.log('Email: admin@admin.com');
+  console.log('Password: admin');
+  console.log('=================================');
   console.log('Analyst user: analyst@example.com / analyst123');
 }

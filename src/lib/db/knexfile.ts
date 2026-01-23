@@ -17,8 +17,9 @@ const config: { [key: string]: Knex.Config } = {
       extension: 'ts',
     },
     pool: {
-      afterCreate: (conn: { run: (sql: string, callback: () => void) => void }, cb: () => void) => {
-        conn.run('PRAGMA foreign_keys = ON', cb);
+      afterCreate: (conn: any, cb: () => void) => {
+        conn.pragma('foreign_keys = ON');
+        cb();
       },
     },
   },
@@ -38,8 +39,9 @@ const config: { [key: string]: Knex.Config } = {
       extension: 'ts',
     },
     pool: {
-      afterCreate: (conn: { run: (sql: string, callback: () => void) => void }, cb: () => void) => {
-        conn.run('PRAGMA foreign_keys = ON', cb);
+      afterCreate: (conn: any, cb: () => void) => {
+        conn.pragma('foreign_keys = ON');
+        cb();
       },
     },
   },

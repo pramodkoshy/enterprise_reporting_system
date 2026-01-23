@@ -44,7 +44,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Save, Eye, Trash, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ReportDefinition, SavedQuery, ColumnDefinition } from '@/types/database';
+import type { ReportDefinition, SavedQuery, ColumnDefinition, FormatterType } from '@/types/database';
 
 interface SortableColumnRowProps {
   column: ColumnDefinition;
@@ -115,7 +115,7 @@ function SortableColumnRow({ column, onUpdate, onDelete }: SortableColumnRowProp
           value={column.formatter?.type || 'text'}
           onValueChange={(type) =>
             onUpdate(column.id, {
-              formatter: { type: type as ColumnDefinition['formatter']['type'], options: {} },
+              formatter: { type: type as FormatterType, options: {} },
             })
           }
         >

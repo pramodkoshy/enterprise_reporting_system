@@ -2,12 +2,14 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { processReportJob } from './workers/report-worker';
 import type { JobData, JobResult } from './queue';
+import { WORKER_CONCURRENCY, RATE_LIMITER } from '@/lib/queue/config';
 
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 });
 
-const concurrency = parseInt(process.env.MAX_CONCURRENT_JOBS || '5', 10);
+const concurrency = WORKER_CONCURRENCY;
+
 
 async function processJob(job: Job<JobData>): Promise<JobResult> {
   console.log(`Processing job ${job.id} of type ${job.data.type}`);
@@ -55,12 +57,9 @@ const worker = new Worker<JobData, JobResult>(
     }
   },
   {
-    connection: redisConnection,
+    connection: redisConnection as any,
     concurrency,
-    limiter: {
-      max: 100,
-      duration: 60000, // 100 jobs per minute
-    },
+    limiter: RATE_LIMITER,
   }
 );
 

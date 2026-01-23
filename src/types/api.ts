@@ -86,7 +86,14 @@ export interface SQLExecutionRequest {
   dataSourceId: string;
   parameters?: Record<string, unknown>;
   limit?: number;
+  offset?: number;
   timeout?: number;
+}
+
+export interface QueryPagination {
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }
 
 export interface SQLExecutionResponse {
@@ -95,6 +102,7 @@ export interface SQLExecutionResponse {
   rowCount: number;
   executionTime: number;
   truncated?: boolean;
+  pagination?: QueryPagination;
 }
 
 export interface ColumnInfo {

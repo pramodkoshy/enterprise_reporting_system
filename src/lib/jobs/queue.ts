@@ -49,7 +49,7 @@ export interface JobResult {
 
 // Create the main job queue
 export const reportingQueue = new Queue<JobData, JobResult>('reporting', {
-  connection: redisConnection,
+  connection: redisConnection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -69,7 +69,7 @@ export const reportingQueue = new Queue<JobData, JobResult>('reporting', {
 
 // Queue events for monitoring
 export const queueEvents = new QueueEvents('reporting', {
-  connection: redisConnection,
+  connection: redisConnection as any,
 });
 
 // Add a job to the queue

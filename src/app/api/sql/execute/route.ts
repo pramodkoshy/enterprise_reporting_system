@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sql, dataSourceId, parameters, limit = 1000, timeout = DEFAULT_TIMEOUT } = body;
+    const { sql, dataSourceId, parameters, limit = 100, offset = 0, timeout = DEFAULT_TIMEOUT } = body;
 
     if (!sql) {
       return NextResponse.json(
@@ -67,17 +67,23 @@ export async function POST(request: NextRequest) {
     // Get connection
     const connection = await getConnection(dataSource);
 
-    // Apply limit
+    // Apply pagination (offset and limit)
     const effectiveLimit = Math.min(limit, MAX_ROWS);
     let limitedSQL = sql.trim();
 
-    // Add LIMIT if not present (for safety)
+    // Add LIMIT and OFFSET if not present (for safety and pagination)
     if (!/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bTOP\s+\d+/i.test(limitedSQL)) {
       // Remove trailing semicolon if present
       if (limitedSQL.endsWith(';')) {
         limitedSQL = limitedSQL.slice(0, -1);
       }
-      limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit}`;
+      limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit} OFFSET ${offset}`;
+    } else if (/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bOFFSET\s+\d+/i.test(limitedSQL) && offset > 0) {
+      // Has LIMIT but no OFFSET, add OFFSET
+      if (limitedSQL.endsWith(';')) {
+        limitedSQL = limitedSQL.slice(0, -1);
+      }
+      limitedSQL = `${limitedSQL} OFFSET ${offset}`;
     }
 
     // Execute query with timeout
@@ -133,6 +139,11 @@ export async function POST(request: NextRequest) {
         rowCount: rows.length,
         executionTime,
         truncated: rows.length >= effectiveLimit,
+        pagination: {
+          limit: effectiveLimit,
+          offset,
+          hasMore: rows.length >= effectiveLimit,
+        },
       },
     });
   } catch (error) {
