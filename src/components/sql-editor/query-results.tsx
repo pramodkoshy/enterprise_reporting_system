@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,6 +9,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useState } from 'react';
 import {
   Table,
@@ -31,8 +32,12 @@ interface QueryResultsProps {
   onPageChange?: (offset: number) => void;
 }
 
+const ROW_HEIGHT = 40; // Height of each row in pixels
+const ESTIMATED_SCROLL_HEIGHT = 600; // Estimated viewport height
+
 export function QueryResults({ result, isLoading, error, onPageChange }: QueryResultsProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const columns: ColumnDef<Record<string, unknown>>[] = useMemo(() => {
     if (!result?.columns) return [];
@@ -68,6 +73,16 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+  });
+
+  const rowModel = table.getRowModel();
+
+  // Set up virtual scrolling
+  const virtualizer = useVirtualizer({
+    count: rowModel.rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10, // Number of rows to render outside viewport
   });
 
   if (isLoading) {
@@ -118,12 +133,20 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
     }
   };
 
+  // Calculate total pages
+  const totalPages = pagination
+    ? Math.ceil(pagination.total / pagination.limit)
+    : Math.ceil((result?.rowCount || 0) / 100);
+
   return (
     <div className="space-y-2 flex flex-col h-full">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4 text-sm">
           <Badge variant="secondary">
-            {result.rowCount} row{result.rowCount !== 1 ? 's' : ''}
+            {pagination?.total || result.rowCount} total row{(pagination?.total || result.rowCount) !== 1 ? 's' : ''}
+          </Badge>
+          <Badge variant="outline">
+            Showing {rowModel.rows.length} row{rowModel.rows.length !== 1 ? 's' : ''}
           </Badge>
           <span className="text-muted-foreground">
             Execution time: {result.executionTime}ms
@@ -134,42 +157,47 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
         </div>
 
         {/* Pagination Controls */}
-        {pagination && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={!hasPrevPage}
-                className="h-8 px-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={!hasNextPage}
-                className="h-8 px-2"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={!hasPrevPage}
+              className="h-8 px-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={!hasNextPage}
+              className="h-8 px-2"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-auto rounded-md border">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
+      {/* Virtualized Table */}
+      <div
+        ref={tableContainerRef}
+        className="flex-1 overflow-auto rounded-md border"
+        style={{
+          height: ESTIMATED_SCROLL_HEIGHT,
+        }}
+      >
+        <Table style={{ borderCollapse: 'separate', borderSpacing: '0' }}>
+          <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="whitespace-nowrap">
+                  <TableHead key={header.id} className="whitespace-nowrap bg-background">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -182,32 +210,70 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center text-muted-foreground"
-                >
-                  No results
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="font-mono text-sm">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+            <tr>
+              <td
+                colSpan={columns.length}
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  padding: 0,
+                  verticalAlign: 'top',
+                }}
+              >
+                {rowModel.rows.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <TableCell className="text-center text-muted-foreground">
+                      No results
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
+                  </div>
+                ) : (
+                  virtualizer.getVirtualItems().map((virtualRow) => {
+                    const row = rowModel.rows[virtualRow.index];
+                    return (
+                      <div
+                        key={virtualRow.key}
+                        data-index={virtualRow.index}
+                        ref={virtualizer.measureElement}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                        }}
+                      >
+                        <TableRow style={{ border: 'none' }}>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell
+                              key={cell.id}
+                              className="font-mono text-sm border-b py-2"
+                              style={{
+                                boxSizing: 'border-box',
+                                display: 'table-cell',
+                              }}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </div>
+                    );
+                  })
+                )}
+              </td>
+            </tr>
           </TableBody>
         </Table>
       </div>
+
+      {/* Performance Info for Large Datasets */}
+      {rowModel.rows.length > 100 && (
+        <div className="text-xs text-muted-foreground flex-shrink-0">
+          💡 Virtual scrolling enabled for {rowModel.rows.length} rows. Only visible rows are rendered for optimal performance.
+        </div>
+      )}
     </div>
   );
 }
