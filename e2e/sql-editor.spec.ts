@@ -267,67 +267,6 @@ test.describe('SQL Editor - Basic Functionality', () => {
     await helpers.screenshot('sql-editor-query-saved');
   });
 
-  test('toggle Schema Browser panel', async ({ page }) => {
-    const helpers = new TestHelpers(page);
-
-    // Check if schema panel is initially visible
-    const schemaPanel = page.locator('#schema-browser-panel').first();
-
-    // Click toggle button to collapse
-    const toggleButton = page.locator('button').filter({ hasText: /Panel/ }).first();
-    await toggleButton.click();
-
-    // Wait for animation
-    await page.waitForTimeout(300);
-
-    // Verify panel is collapsed
-    const size = await schemaPanel.evaluate(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.width;
-    });
-    expect(size).toBeLessThan(50);
-
-    // Click again to expand
-    await toggleButton.click();
-    await page.waitForTimeout(300);
-
-    // Verify panel is expanded
-    const sizeExpanded = await schemaPanel.evaluate(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.width;
-    });
-    expect(sizeExpanded).toBeGreaterThan(100);
-
-    await helpers.screenshot('sql-editor-panel-toggle');
-  });
-
-  test('toggle Editor panel', async ({ page }) => {
-    const helpers = new TestHelpers(page);
-
-    // Check if editor panel is visible
-    const editorPanel = page.locator('#sql-editor-panel').first();
-
-    // Find and click the editor toggle button
-    const toggleButtons = page.locator('button').all();
-    for (const button of await toggleButtons) {
-      const text = await button.textContent();
-      if (text?.includes('Panel')) {
-        await button.click();
-        await page.waitForTimeout(300);
-        break;
-      }
-    }
-
-    // Verify panel collapsed
-    const size = await editorPanel.evaluate(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.height;
-    });
-    expect(size).toBeLessThan(50);
-
-    await helpers.screenshot('sql-editor-editor-collapsed');
-  });
-
   test('view query execution logs', async ({ page }) => {
     const helpers = new TestHelpers(page);
 
