@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Play, Save, FileText, Database, Code, AlertCircle, AlertTriangle, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen } from 'lucide-react';
+import { Play, Save, FileText, Database, Code, AlertCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DataSource } from '@/types/database';
 import type { SchemaInfo, SQLExecutionResponse } from '@/types/api';
@@ -51,20 +51,8 @@ export default function SQLEditorPage() {
   const [queryName, setQueryName] = useState('');
   const [queryDescription, setQueryDescription] = useState('');
   const [pageOffset, setPageOffset] = useState(0);
-  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
-  const [isSchemaCollapsed, setIsSchemaCollapsed] = useState(false);
 
   const PAGE_SIZE = 100;
-
-  // Handle schema panel collapse/expand
-  const handleToggleSchema = useCallback(() => {
-    setIsSchemaCollapsed(prev => !prev);
-  }, []);
-
-  // Handle editor panel collapse/expand
-  const handleToggleEditor = useCallback(() => {
-    setIsEditorCollapsed(prev => !prev);
-  }, []);
 
   // Fetch data sources (only active ones)
   const { data: dataSources, isLoading: isLoadingDataSources } = useQuery<DataSource[]>({
@@ -330,97 +318,46 @@ export default function SQLEditorPage() {
         </div>
       </div>
 
-      <ResizablePanelGroup orientation="horizontal" className="h-full rounded-lg border relative">
-        {/* Floating toggle button for Schema Browser */}
-        <div className="absolute top-4 z-[9999] pointer-events-auto transition-all duration-200" style={{ left: isSchemaCollapsed ? '4px' : 'calc(20% - 20px)' }}>
-          <Button
-            variant="default"
-            size="sm"
-            className="shadow-lg"
-            onClick={handleToggleSchema}
-          >
-            {isSchemaCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </Button>
-        </div>
-
-        <ResizablePanel
-          size={schemaPanelSize}
-          minSize={0}
-          maxSize={40}
-          collapsible={true}
-          collapsedSize={0}
-          id="schema-browser-panel"
-          onCollapse={() => setIsSchemaCollapsed(true)}
-          onExpand={() => setIsSchemaCollapsed(false)}
-        >
-          {schemaPanelSize > 0 && (
-            <div className="h-full overflow-auto">
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0 sticky top-0 z-10">
-                <h2 className="text-sm font-semibold px-2">Schema Browser</h2>
-              </div>
-              <SchemaBrowser
-                schema={schema || null}
-                isLoading={isLoadingSchema}
-                onTableClick={handleTableClick}
-                onColumnClick={handleColumnClick}
-              />
-            </div>
-          )}
+      <ResizablePanelGroup orientation="horizontal" className="h-full rounded-lg border">
+        <ResizablePanel defaultSize={20} minSize={10} maxSize={40} id="schema-browser-panel">
+          <div className="h-full overflow-auto">
+            <SchemaBrowser
+              schema={schema || null}
+              isLoading={isLoadingSchema}
+              onTableClick={handleTableClick}
+              onColumnClick={handleColumnClick}
+            />
+          </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle className={schemaPanelSize > 0 ? '' : 'hidden'} />
+        <ResizableHandle withHandle />
 
-        <ResizablePanel size={100 - schemaPanelSize} minSize={30} id="main-content-panel">
-          <ResizablePanelGroup orientation="vertical" className="h-full relative">
-            {/* Floating toggle button for SQL Editor */}
-            <div className="absolute right-4 z-[9999] pointer-events-auto transition-all duration-200" style={{ top: isEditorCollapsed ? '4px' : 'calc(50% - 16px)' }}>
-              <Button
-                variant="default"
-                size="sm"
-                className="shadow-lg"
-                onClick={handleToggleEditor}
-              >
-                {isEditorCollapsed ? <PanelTopOpen className="h-4 w-4" /> : <PanelTopClose className="h-4 w-4" />}
-              </Button>
-            </div>
-
-            <ResizablePanel
-              size={editorPanelSize}
-              minSize={0}
-              maxSize={90}
-              collapsible={true}
-              collapsedSize={0}
-              id="sql-editor-panel"
-              onCollapse={() => setIsEditorCollapsed(true)}
-              onExpand={() => setIsEditorCollapsed(false)}
-            >
-              {editorPanelSize > 0 && (
-                <div className="h-full flex flex-col">
-                  <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-semibold">SQL Editor</h2>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedDataSource ? dataSources?.find(ds => ds.id === selectedDataSource)?.name : 'No data source selected'}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-h-0">
-                    <MonacoSQLEditor
-                      value={sqlContent}
-                      onChange={setSqlContent}
-                      onExecute={handleExecute}
-                      height="100%"
-                      className="h-full"
-                      schema={schema || null}
-                    />
-                  </div>
+        <ResizablePanel defaultSize={80} minSize={60} id="main-content-panel">
+          <ResizablePanelGroup orientation="vertical" className="h-full">
+            <ResizablePanel defaultSize={50} minSize={20} maxSize={80} id="sql-editor-panel">
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
+                  <h2 className="text-sm font-semibold">SQL Editor</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedDataSource ? dataSources?.find(ds => ds.id === selectedDataSource)?.name : 'No data source selected'}
+                  </span>
                 </div>
-              )}
+                <div className="flex-1 min-h-0">
+                  <MonacoSQLEditor
+                    value={sqlContent}
+                    onChange={setSqlContent}
+                    onExecute={handleExecute}
+                    height="100%"
+                    className="h-full"
+                    schema={schema || null}
+                  />
+                </div>
+              </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle className={editorPanelSize > 0 ? '' : 'hidden'} />
+            <ResizableHandle withHandle />
 
-            <ResizablePanel size={100 - editorPanelSize} minSize={10} maxSize={100} id="results-panel">
+            <ResizablePanel minSize={10} maxSize={100} id="results-panel">
               <Tabs defaultValue="results" className="h-full flex flex-col">
                 <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
                   <TabsList>

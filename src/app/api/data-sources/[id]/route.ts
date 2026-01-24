@@ -202,11 +202,9 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     await db<DataSource>('data_sources')
       .where('id', id)
       .update({
-        is_deleted: true,
-        deleted_at: new Date().toISOString(),
-        deleted_by: session.user.id,
+        is_active: false,
         updated_at: new Date().toISOString(),
-      });
+      } as any);
 
     // Clear connection cache for this data source
     await closeConnection(id);
