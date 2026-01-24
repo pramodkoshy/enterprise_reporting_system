@@ -2,6 +2,19 @@
 
 This directory contains comprehensive E2E tests for the Enterprise Reporting System using Playwright.
 
+## Quick Start
+
+```bash
+# 1. Setup test data (creates admin user: admin@admin.com / admin)
+npm run test:setup
+
+# 2. Run all tests
+npm run test:e2e
+
+# Or do both in one command:
+npm run test:e2e:all
+```
+
 ## Test Structure
 
 ```
