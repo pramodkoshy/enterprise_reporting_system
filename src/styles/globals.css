@@ -73,6 +73,35 @@
   @apply rounded-md border;
 }
 
+/* Monaco Editor Widgets - Ensure they appear above all other elements */
+.monaco-editor .suggest-widget {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .context-view {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .editor-widget {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .hover-widget {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .monaco-menu {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .monaco-list {
+  z-index: 1000 !important;
+}
+
+.monaco-editor .find-widget {
+  z-index: 1000 !important;
+}
+
 /* React Grid Layout */
 .react-grid-layout {
   position: relative;

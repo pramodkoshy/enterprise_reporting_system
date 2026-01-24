@@ -213,7 +213,7 @@ export function MonacoSQLEditor({
   );
 
   return (
-    <div className={className} style={{ height: typeof height === 'number' ? `${height}px` : height }}>
+    <div className={className} style={{ height: typeof height === 'number' ? `${height}px` : height, zIndex: 1 }}>
       <Editor
         height="100%"
         language="sql"

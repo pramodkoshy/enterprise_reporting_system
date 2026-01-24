@@ -283,15 +283,23 @@ export default function DataSourcesPage() {
     setNewDSDescription(ds.description || '');
     setNewDSType(ds.client_type);
 
+    // Parse connection config to extract values
+    let config = {};
+    try {
+      config = ds.connection_config ? JSON.parse(ds.connection_config) : {};
+    } catch {
+      config = {};
+    }
+
     // Extract just the filename from the path
-    const fullPath = ds.connection_config?.filename || '';
+    const fullPath = (config as any).filename || '';
     const fileName = fullPath.split('/').pop() || fullPath;
     setNewDSFileName(fileName);
 
-    setNewDSHost(ds.connection_config?.host || '');
-    setNewDSPort(ds.connection_config?.port?.toString() || '');
-    setNewDSDatabase(ds.connection_config?.database || '');
-    setNewDSUser(ds.connection_config?.user || '');
+    setNewDSHost((config as any).host || '');
+    setNewDSPort((config as any).port?.toString() || '');
+    setNewDSDatabase((config as any).database || '');
+    setNewDSUser((config as any).user || '');
     setNewDSPassword(''); // Don't pre-fill password for security
     setConnectionTestResult(null);
     setEditDialogOpen(true);
