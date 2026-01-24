@@ -22,10 +22,13 @@ e2e/
 ├── helpers/
 │   └── test-helpers.ts       # Reusable test utilities and helper functions
 ├── app.spec.ts               # Authentication and general app tests
-├── sql-editor.spec.ts        # SQL Editor comprehensive tests
+├── sql-editor.spec.ts        # SQL Editor basic functionality tests
+├── sql-editor-advanced.spec.ts  # SQL Editor advanced query tests (NEW!)
 ├── charts.spec.ts            # Charts management and viewer tests
-├── reports.spec.ts           # Reports management and editor tests
-└── dashboards.spec.ts        # Dashboards management tests
+├── reports.spec.ts           # Reports management tests
+├── reports-editor.spec.ts    # Report Editor full functionality tests (NEW!)
+├── dashboards.spec.ts        # Dashboards management tests
+└── dashboards-editor.spec.ts # Dashboard Editor full functionality tests (NEW!)
 ```
 
 ## Test Coverage
@@ -40,7 +43,7 @@ e2e/
 - ✅ No console errors on page load
 - ✅ Responsive design tests
 
-### 2. SQL Editor (`sql-editor.spec.ts`)
+### 2. SQL Editor (`sql-editor.spec.ts` & `sql-editor-advanced.spec.ts`)
 #### Basic Functionality
 - ✅ SQL Editor page loads correctly
 - ✅ Select data source and load schema
@@ -67,8 +70,35 @@ e2e/
 - ✅ Results table displays data correctly
 - ✅ Sort results by clicking column headers
 
-#### Advanced Queries
-- ✅ Execute multiple queries in sequence
+#### Advanced Queries (`sql-editor-advanced.spec.ts`)
+- ✅ Execute UNION query
+- ✅ Execute query with multiple JOINs (users, orders, products, order_items)
+- ✅ Execute subquery in WHERE clause
+- ✅ Execute query with CASE statement
+- ✅ Execute query with DISTINCT and ORDER BY
+- ✅ Execute query with multiple aggregations (COUNT, SUM, AVG, MIN, MAX)
+- ✅ Execute query with date functions (DATE, datetime)
+- ✅ Execute query with string functions (UPPER, LOWER, SUBSTR)
+- ✅ Execute query with NULL handling (COALESCE, CASE WHEN NULL)
+- ✅ Execute query with IN clause
+- ✅ Execute query with BETWEEN clause
+- ✅ Execute query with LIKE pattern matching
+
+#### Performance Tests (`sql-editor-advanced.spec.ts`)
+- ✅ Handle large result set efficiently (500+ rows)
+- ✅ Rapid execution of multiple queries in sequence
+
+#### Editor Features (`sql-editor-advanced.spec.ts`)
+- ✅ Edit SQL query in Monaco editor
+- ✅ Clear editor and type new query
+- ✅ Validate multiple queries in sequence
+
+#### Real-World Scenarios (`sql-editor-advanced.spec.ts`)
+- ✅ Customer order summary with complex aggregations
+- ✅ Product sales by category with multiple joins
+- ✅ Find users without orders (LEFT JOIN with NULL check)
+- ✅ Time-based analytics query (GROUP BY DATE)
+- ✅ Navigate through pages of results (pagination)
 
 ### 3. Charts Management (`charts.spec.ts`)
 #### Chart Management
@@ -98,8 +128,8 @@ e2e/
 - ✅ Handle empty charts list
 - ✅ Handle chart not found
 
-### 4. Reports Management (`reports.spec.ts`)
-#### Report Management
+### 4. Reports Management (`reports.spec.ts` & `reports-editor.spec.ts`)
+#### Report Management (`reports.spec.ts`)
 - ✅ Reports page loads correctly
 - ✅ Displays reports list table
 - ✅ Create new report with query
@@ -111,7 +141,7 @@ e2e/
 - ✅ Delete report
 - ✅ Query status badges are displayed correctly
 
-#### Report Editor
+#### Report Editor (`reports.spec.ts` & `reports-editor.spec.ts`)
 - ✅ Report editor loads with column configuration
 - ✅ Update column header
 - ✅ Toggle column visibility
@@ -120,6 +150,19 @@ e2e/
 - ✅ Save report configuration
 - ✅ Breadcrumb navigation in editor
 - ✅ View report from editor
+
+#### Advanced Editor Features (`reports-editor.spec.ts`)
+- ✅ Create report from scratch and configure all columns
+- ✅ Configure all column formatters (Text, Number, Currency, Percentage, Date, DateTime, Boolean)
+- ✅ Reorder columns using drag and drop
+- ✅ Set multiple column properties at once
+- ✅ Configure column visibility for all columns
+- ✅ Enable sorting for all columns
+- ✅ Navigate between tabs in editor
+- ✅ Save report configuration multiple times
+- ✅ View report after configuration
+- ✅ Full workflow: create, configure, view, and delete report
+
 
 #### Report Viewer
 - ✅ View report with data
@@ -130,8 +173,8 @@ e2e/
 - ✅ Handle empty reports list
 - ✅ Handle report not found
 
-### 5. Dashboards Management (`dashboards.spec.ts`)
-#### Dashboard Management
+### 5. Dashboards Management (`dashboards.spec.ts` & `dashboards-editor.spec.ts`)
+#### Dashboard Management (`dashboards.spec.ts`)
 - ✅ Dashboards page loads correctly
 - ✅ Displays dashboards list table
 - ✅ Create new private dashboard
@@ -147,16 +190,33 @@ e2e/
 - ✅ Private badge has lock icon
 - ✅ Dashboard description displays correctly
 
-#### Bulk Operations
+#### Bulk Operations (`dashboards.spec.ts`)
 - ✅ Create multiple dashboards
 
-#### Navigation
+#### Navigation (`dashboards.spec.ts`)
 - ✅ Navigate to dashboard and back
 - ✅ Breadcrumb navigation on dashboard page
 
-#### Error Handling
+#### Advanced Dashboard Editor (`dashboards-editor.spec.ts`)
+- ✅ Create public dashboard with description
+- ✅ Create private dashboard
+- ✅ Toggle dashboard visibility between public and private
+- ✅ Edit dashboard name and description
+- ✅ View dashboard after creation
+- ✅ Delete dashboard and verify removal
+- ✅ Create multiple dashboards with different settings
+- ✅ Navigate between dashboard editor and viewer
+- ✅ Verify public dashboard has globe icon
+- ✅ Verify private dashboard has lock icon
+- ✅ Validation prevents empty dashboard name
+- ✅ Handle cancel operation gracefully
+- ✅ Full dashboard lifecycle: create, edit, view, delete
+- ✅ Create dashboard with minimal information
+
+#### Error Handling (`dashboards.spec.ts` & `dashboards-editor.spec.ts`)
 - ✅ Handle empty dashboards list
 - ✅ Handle dashboard not found
+
 
 ## Running the Tests
 
