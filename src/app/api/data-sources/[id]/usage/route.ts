@@ -39,18 +39,21 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       .count('id as count')
       .first();
 
-    // Count usage in report_definitions
+    // Count usage in report_definitions (via saved_queries)
     const reportCount = await db('report_definitions')
-      .where('data_source_id', id)
-      .where('is_deleted', false)
-      .count('id as count')
+      .join('saved_queries', 'report_definitions.saved_query_id', 'saved_queries.id')
+      .where('saved_queries.data_source_id', id)
+      .where('report_definitions.is_deleted', false)
+      .where('saved_queries.is_deleted', false)
+      .count('report_definitions.id as count')
       .first();
 
-    // Count usage in chart_definitions (via report_definitions)
+    // Count usage in chart_definitions (via saved_queries)
     const chartCount = await db('chart_definitions')
-      .join('report_definitions', 'chart_definitions.report_id', 'report_definitions.id')
-      .where('report_definitions.data_source_id', id)
+      .join('saved_queries', 'chart_definitions.saved_query_id', 'saved_queries.id')
+      .where('saved_queries.data_source_id', id)
       .where('chart_definitions.is_deleted', false)
+      .where('saved_queries.is_deleted', false)
       .count('chart_definitions.id as count')
       .first();
 

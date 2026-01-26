@@ -28,6 +28,14 @@ export function MonacoSQLEditor({
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const { theme } = useTheme();
 
+  // Store schema in a ref for the completion provider to access
+  const schemaRef = useRef(schema);
+
+  // Update schema ref when schema changes
+  useEffect(() => {
+    schemaRef.current = schema;
+  }, [schema]);
+
   const handleEditorMount: OnMount = useCallback(
     (editor, monaco) => {
       editorRef.current = editor;
@@ -56,22 +64,14 @@ export function MonacoSQLEditor({
     [onExecute]
   );
 
-  // Update completion provider when schema changes
+  // Register completion provider ONCE (not on every schema change)
   useEffect(() => {
     if (!editorRef.current) return;
 
     const monaco = (window as any).monaco;
     if (!monaco) return;
 
-    // Dispose existing provider if any
-    const dispose = () => {
-      const providers = monaco.languages.CompletionItemProvider['_providers']?.get('sql');
-      if (providers) {
-        providers.forEach((provider: any) => provider.dispose?.());
-      }
-    };
-
-    // Register new completion provider with schema data
+    // Register completion provider - reads from schemaRef instead of depending on schema prop
     const provider = monaco.languages.registerCompletionItemProvider('sql', {
       provideCompletionItems: (model: any, position: any) => {
         const word = model.getWordUntilPosition(position);
@@ -119,10 +119,11 @@ export function MonacoSQLEditor({
           }))
         );
 
-        // Schema-based completions
-        if (schema) {
+        // Schema-based completions - read from ref instead of prop
+        const currentSchema = schemaRef.current;
+        if (currentSchema) {
           // Add tables
-          schema.tables.forEach((table) => {
+          currentSchema.tables.forEach((table) => {
             suggestions.push({
               label: table.name,
               kind: monaco.languages.CompletionItemKind.Class,
@@ -159,7 +160,7 @@ export function MonacoSQLEditor({
           });
 
           // Add views
-          schema.views.forEach((view) => {
+          currentSchema.views.forEach((view) => {
             suggestions.push({
               label: view.name,
               kind: monaco.languages.CompletionItemKind.Interface,
@@ -203,7 +204,7 @@ export function MonacoSQLEditor({
     return () => {
       provider.dispose();
     };
-  }, [schema]);
+  }, []); // Empty dependency array - run ONCE
 
   const handleChange: OnChange = useCallback(
     (value) => {

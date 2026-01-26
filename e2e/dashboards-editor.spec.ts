@@ -243,7 +243,7 @@ test.describe('Dashboard Editor - Multiple Dashboards', () => {
 
     // Verify all dashboards exist in the list
     for (const dashboard of dashboards) {
-      await expect(page.getByText(dashboard.name)).toBeVisible();
+      await expect(page.getByText(dashboard.name).first()).toBeVisible();
     }
 
     await helpers.screenshot('dashboard-editor-multiple-dashboards');
@@ -287,7 +287,7 @@ test.describe('Dashboard Editor - Multiple Dashboards', () => {
       if (await breadcrumb.isVisible()) {
         await breadcrumb.click();
         await page.waitForTimeout(1000);
-        await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Dashboards', exact: true }).first()).toBeVisible();
       }
 
       await helpers.screenshot('dashboard-editor-navigation-flow');
@@ -396,10 +396,10 @@ test.describe('Dashboard Editor - Error Handling', () => {
     await helpers.clickButton('Cancel');
 
     // Should return to dashboards list
-    await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboards', exact: true }).first()).toBeVisible();
 
     // Verify cancelled dashboard doesn't exist
-    await expect(page.getByText('Cancel Test Dashboard').not.toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('Cancel Test Dashboard')).not.toBeVisible({ timeout: 2000 });
 
     await helpers.screenshot('dashboard-editor-cancel');
   });
@@ -461,7 +461,7 @@ test.describe('Dashboard Editor - Integration Tests', () => {
       await helpers.verifyToast('Dashboard deleted successfully');
 
       // Verify dashboard is gone
-      await expect(page.getByText(`${dashboardName} - Updated`).not.toBeVisible({ timeout: 2000 });
+      await expect(page.getByText(`${dashboardName} - Updated`)).not.toBeVisible({ timeout: 2000 });
     }
 
     await helpers.screenshot('dashboard-editor-lifecycle');

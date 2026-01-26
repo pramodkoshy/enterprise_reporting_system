@@ -102,6 +102,21 @@
   z-index: 1000 !important;
 }
 
+/* Radix UI dropdowns (Select, Dialog, Popover, etc.) - Must be above Monaco Editor */
+[data-radix-popper-content-wrapper],
+[data-radix-select-content],
+[data-radix-dialog-content],
+[data-radix-dropdown-menu-content],
+[data-radix-context-menu-content],
+[data-radix-popover-content] {
+  z-index: 1100 !important;
+}
+
+/* Radix UI Portal root */
+[data-radix-portal] {
+  z-index: 1100 !important;
+}
+
 /* React Grid Layout */
 .react-grid-layout {
   position: relative;

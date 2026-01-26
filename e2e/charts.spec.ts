@@ -44,7 +44,7 @@ test.describe('Charts Management', () => {
     await helpers.clickButton('New Chart');
 
     // Wait for dialog to appear
-    await expect(page.getByText('Create Chart')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Create Chart' })).toBeVisible();
     await expect(page.getByText('Create a new chart visualization from a saved query.')).toBeVisible();
 
     // Fill in chart name
@@ -206,7 +206,7 @@ test.describe('Charts Management', () => {
     await helpers.clickButton('Cancel');
 
     // Verify dialog is closed
-    await expect(page.getByText('Create Chart')).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Create Chart' })).not.toBeVisible();
 
     await helpers.screenshot('chart-creation-cancelled');
   });

@@ -12,7 +12,7 @@ test.describe('Dashboards Management', () => {
     const helpers = new TestHelpers(page);
 
     // Check for main page elements
-    await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboards', exact: true }).first()).toBeVisible();
     await expect(page.getByText('Create and manage interactive dashboards')).toBeVisible();
     await expect(page.getByRole('button', { name: 'New Dashboard' })).toBeVisible();
 
@@ -29,10 +29,10 @@ test.describe('Dashboards Management', () => {
     await helpers.waitForLoading();
 
     // Check for table headers
-    await expect(page.getByText('Name')).toBeVisible();
-    await expect(page.getByText('Description')).toBeVisible();
-    await expect(page.getByText('Visibility')).toBeVisible();
-    await expect(page.getByText('Created')).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Name' }).first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Description' }).first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Visibility' }).first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Created' }).first()).toBeVisible();
 
     await helpers.screenshot('dashboards-list-table');
   });
@@ -44,7 +44,7 @@ test.describe('Dashboards Management', () => {
     await helpers.clickButton('New Dashboard');
 
     // Wait for dialog to appear
-    await expect(page.getByText('Create Dashboard')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Create Dashboard' })).toBeVisible();
     await expect(page.getByText('Create a new dashboard to organize your reports and charts.')).toBeVisible();
 
     // Fill in dashboard name
@@ -136,7 +136,7 @@ test.describe('Dashboards Management', () => {
     await helpers.clickButton('Cancel');
 
     // Verify dialog is closed
-    await expect(page.getByText('Create Dashboard')).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Create Dashboard' })).not.toBeVisible();
 
     await helpers.screenshot('dashboard-creation-cancelled');
   });
@@ -422,7 +422,7 @@ test.describe('Dashboards - Navigation', () => {
         await page.waitForTimeout(500);
 
         // Verify we're back on the list
-        await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Dashboards', exact: true }).first()).toBeVisible();
 
         await helpers.screenshot('dashboard-navigation-roundtrip');
       }
@@ -450,7 +450,7 @@ test.describe('Dashboards - Navigation', () => {
           await breadcrumb.click();
 
           // Should be back on dashboards list
-          await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+          await expect(page.getByRole('heading', { name: 'Dashboards', exact: true }).first()).toBeVisible();
 
           await helpers.screenshot('dashboard-breadcrumb-navigation');
         }

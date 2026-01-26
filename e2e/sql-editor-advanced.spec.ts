@@ -6,18 +6,8 @@ test.describe('SQL Editor - Enhanced Query Types', () => {
     const helpers = new TestHelpers(page);
     await helpers.login();
     await helpers.navigateToPage('SQL Editor');
-    // Wait for data source and select if available
-    await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+    // Select first available data source
+    await helpers.selectDataSource();
   });
 
   test('execute UNION query', async ({ page }) => {
@@ -322,17 +312,8 @@ test.describe('SQL Editor - Performance Tests', () => {
     const helpers = new TestHelpers(page);
     await helpers.login();
     await helpers.navigateToPage('SQL Editor');
-    await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+    // Select first available data source
+    await helpers.selectDataSource();
   });
 
   test('handle large result set efficiently', async ({ page }) => {
@@ -383,17 +364,8 @@ test.describe('SQL Editor - Editor Features', () => {
     const helpers = new TestHelpers(page);
     await helpers.login();
     await helpers.navigateToPage('SQL Editor');
-    await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+    // Select first available data source
+    await helpers.selectDataSource();
   });
 
   test('edit SQL query in Monaco editor', async ({ page }) => {
@@ -457,17 +429,8 @@ test.describe('SQL Editor - Complex Real-World Scenarios', () => {
     const helpers = new TestHelpers(page);
     await helpers.login();
     await helpers.navigateToPage('SQL Editor');
-    await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+    // Select first available data source
+    await helpers.selectDataSource();
   });
 
   test('customer order summary with complex aggregations', async ({ page }) => {

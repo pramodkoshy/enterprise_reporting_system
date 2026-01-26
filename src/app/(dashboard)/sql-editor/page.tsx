@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MonacoSQLEditor } from '@/components/sql-editor/monaco-editor';
 import { SchemaBrowser } from '@/components/sql-editor/schema-browser';
@@ -56,7 +56,7 @@ export default function SQLEditorPage() {
 
   // Fetch data sources (only active ones)
   const { data: dataSources, isLoading: isLoadingDataSources } = useQuery<DataSource[]>({
-    queryKey: ['data-sources'],
+    queryKey: ['data-sources', 'active'],
     queryFn: async () => {
       const res = await fetch('/api/data-sources');
       const data = await res.json();
@@ -64,7 +64,16 @@ export default function SQLEditorPage() {
       const sources = data.data?.items || [];
       return sources.filter((ds: DataSource) => ds.is_active);
     },
+    staleTime: 60000, // Cache for 1 minute to prevent re-fetches
+    gcTime: 300000, // Keep in cache for 5 minutes
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[SQL Editor] dataSources:', dataSources);
+    console.log('[SQL Editor] dataSources length:', dataSources?.length);
+    console.log('[SQL Editor] isLoadingDataSources:', isLoadingDataSources);
+  }, [dataSources, isLoadingDataSources]);
 
   // Fetch schema for selected data source
   const { data: schema, isLoading: isLoadingSchema, error: schemaQueryError } = useQuery<{ tables: any[], views: any[], logs?: string[] }>({
@@ -100,6 +109,8 @@ export default function SQLEditorPage() {
     },
     enabled: !!selectedDataSource,
     retry: false,
+    staleTime: 300000, // Cache for 5 minutes
+    gcTime: 600000, // Keep in cache for 10 minutes
   });
 
   // Handle schema query errors
@@ -220,6 +231,15 @@ export default function SQLEditorPage() {
     });
   };
 
+  // Memoize schema to prevent infinite loops in Monaco Editor
+  // Use a simpler approach that doesn't stringify on every render
+  const memoizedSchema = useMemo(() => {
+    if (!schema) return null;
+
+    // Simple stable reference - only recreate if schema object reference changes
+    return schema;
+  }, [schema]);
+
   return (
     <div className="h-[calc(100vh-8rem)]">
       <div className="flex items-center justify-between mb-4">
@@ -322,7 +342,7 @@ export default function SQLEditorPage() {
         <ResizablePanel defaultSize={20} minSize={10} maxSize={40} id="schema-browser-panel">
           <div className="h-full overflow-auto">
             <SchemaBrowser
-              schema={schema || null}
+              schema={memoizedSchema}
               isLoading={isLoadingSchema}
               onTableClick={handleTableClick}
               onColumnClick={handleColumnClick}
@@ -349,7 +369,7 @@ export default function SQLEditorPage() {
                     onExecute={handleExecute}
                     height="100%"
                     className="h-full"
-                    schema={schema || null}
+                    schema={memoizedSchema}
                   />
                 </div>
               </div>

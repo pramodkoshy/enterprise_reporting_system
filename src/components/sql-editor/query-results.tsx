@@ -140,28 +140,45 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
 
   return (
     <div className="space-y-2 flex flex-col h-full">
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4 text-sm">
-          <Badge variant="secondary">
-            {pagination?.total || result.rowCount} total row{(pagination?.total || result.rowCount) !== 1 ? 's' : ''}
-          </Badge>
-          <Badge variant="outline">
-            Showing {rowModel.rows.length} row{rowModel.rows.length !== 1 ? 's' : ''}
-          </Badge>
-          <span className="text-muted-foreground">
-            Execution time: {result.executionTime}ms
-          </span>
-          {result.truncated && (
-            <Badge variant="warning">Results truncated</Badge>
-          )}
-        </div>
+      {/* Performance Metrics Header - Above Column Headers */}
+      <div className="bg-muted/50 rounded-lg p-3 flex-shrink-0">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          {/* Left Side: Row Counts */}
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-sm py-1">
+              {pagination?.total || result.rowCount} total row{(pagination?.total || result.rowCount) !== 1 ? 's' : ''}
+            </Badge>
+            <Badge variant="outline" className="text-sm py-1">
+              {rowModel.rows.length} row{rowModel.rows.length !== 1 ? 's' : ''} displayed
+            </Badge>
+            {pagination?.serverSide && (
+              <Badge variant="outline" className="text-xs py-1" title="Data fetched from server in pages">
+                Server-Side Pagination
+              </Badge>
+            )}
+          </div>
 
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
-          <div className="flex items-center gap-1">
+          {/* Center: Performance Metrics */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Execution Time:</span>
+              <span className={result.executionTime > 1000 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}>
+                {result.executionTime}ms
+              </span>
+            </div>
+            {pagination?.limit && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span>Page Size:</span>
+                <span className="font-medium">{pagination.limit} rows</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: Pagination Controls */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
             <Button
               variant="outline"
               size="sm"
@@ -182,6 +199,13 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
             </Button>
           </div>
         </div>
+
+        {/* Warnings/Info */}
+        {result.truncated && (
+          <div className="mt-2">
+            <Badge variant="warning" className="text-xs">Results truncated at limit</Badge>
+          </div>
+        )}
       </div>
 
       {/* Virtualized Table */}

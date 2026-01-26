@@ -33,7 +33,7 @@ const TEST_DATA_SOURCES: Omit<DataSource, 'id' | 'created_at' | 'updated_at'>[] 
     description: 'Sample database with users, orders, and products',
     client_type: 'sqlite3',
     connection_config: JSON.stringify({
-      filename: './database/sample.db',
+      filename: '/Users/pramodkoshy/projects/dynamic/test/enterprise_reporting_system/database/sample.db',
     }),
     is_active: true,
   },

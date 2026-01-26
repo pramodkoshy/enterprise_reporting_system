@@ -4,9 +4,9 @@ import { getDb } from '@/lib/db/config';
 import { getConnection } from '@/lib/db/connection-manager';
 import { isReadOnlyQuery } from '@/lib/sql/validator';
 import { logAudit } from '@/lib/security/audit';
+import { paginationConfig, validatePageSize } from '@/lib/config/pagination';
 import type { DataSource } from '@/types/database';
 
-const MAX_ROWS = 10000;
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 export async function POST(request: NextRequest) {
@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sql, dataSourceId, parameters, limit = 100, offset = 0, timeout = DEFAULT_TIMEOUT } = body;
+    const { sql, dataSourceId, parameters, limit, offset, timeout = DEFAULT_TIMEOUT } = body;
+
+    // Use configured default page size if not provided
+    const effectiveLimit = validatePageSize(limit || paginationConfig.dataTablePageSize);
+    const effectiveOffset = offset || 0;
 
     if (!sql) {
       return NextResponse.json(
@@ -67,23 +71,33 @@ export async function POST(request: NextRequest) {
     // Get connection
     const connection = await getConnection(dataSource);
 
-    // Apply pagination (offset and limit)
-    const effectiveLimit = Math.min(limit, MAX_ROWS);
+    // Apply SERVER-SIDE pagination (MUST use LIMIT and OFFSET at database level)
     let limitedSQL = sql.trim();
 
-    // Add LIMIT and OFFSET if not present (for safety and pagination)
+    // Add LIMIT and OFFSET if not present (CRITICAL for server-side pagination)
     if (!/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bTOP\s+\d+/i.test(limitedSQL)) {
       // Remove trailing semicolon if present
       if (limitedSQL.endsWith(';')) {
         limitedSQL = limitedSQL.slice(0, -1);
       }
-      limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit} OFFSET ${offset}`;
-    } else if (/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bOFFSET\s+\d+/i.test(limitedSQL) && offset > 0) {
+      // SERVER-SIDE: Add LIMIT and OFFSET to SQL query before sending to database
+      limitedSQL = `${limitedSQL} LIMIT ${effectiveLimit} OFFSET ${effectiveOffset}`;
+    } else if (/\bLIMIT\s+\d+/i.test(limitedSQL) && !/\bOFFSET\s+\d+/i.test(limitedSQL) && effectiveOffset > 0) {
       // Has LIMIT but no OFFSET, add OFFSET
       if (limitedSQL.endsWith(';')) {
         limitedSQL = limitedSQL.slice(0, -1);
       }
-      limitedSQL = `${limitedSQL} OFFSET ${offset}`;
+      limitedSQL = `${limitedSQL} OFFSET ${effectiveOffset}`;
+    }
+
+    // Validate that user-provided LIMIT doesn't exceed max configured page size
+    const limitMatch = limitedSQL.match(/\bLIMIT\s+(\d+)/i);
+    if (limitMatch) {
+      const userLimit = parseInt(limitMatch[1], 10);
+      const validatedLimit = validatePageSize(userLimit);
+      if (userLimit !== validatedLimit) {
+        limitedSQL = limitedSQL.replace(/\bLIMIT\s+\d+/i, `LIMIT ${validatedLimit}`);
+      }
     }
 
     // Execute query with timeout
@@ -141,8 +155,9 @@ export async function POST(request: NextRequest) {
         truncated: rows.length >= effectiveLimit,
         pagination: {
           limit: effectiveLimit,
-          offset,
+          offset: effectiveOffset,
           hasMore: rows.length >= effectiveLimit,
+          serverSide: true, // Explicitly mark as server-side pagination
         },
       },
     });

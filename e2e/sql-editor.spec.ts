@@ -12,7 +12,7 @@ test.describe('SQL Editor - Basic Functionality', () => {
     const helpers = new TestHelpers(page);
 
     // Check for main page elements
-    await expect(page.getByRole('heading', { name: 'SQL Editor' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'SQL Editor', exact: true }).first()).toBeVisible();
     await expect(page.getByText('Write and execute SQL queries')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Run' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Validate' })).toBeVisible();
@@ -36,31 +36,16 @@ test.describe('SQL Editor - Basic Functionality', () => {
     // Wait for data sources to load
     await helpers.waitForLoading();
 
-    // Select a data source (assuming there's at least one active)
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
+    // Select a data source
+    await helpers.selectDataSource();
 
-      // Wait for dropdown content
-      await page.waitForTimeout(500);
+    // Switch to Schema tab
+    await helpers.switchTab('Schema');
 
-      // Select first available data source
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
+    // Verify schema loaded
+    await expect(page.getByText('Schema Loaded Successfully')).toBeVisible({ timeout: 10000 });
 
-        // Wait for schema to load
-        await helpers.waitForLoading();
-
-        // Switch to Schema tab
-        await helpers.switchTab('Schema');
-
-        // Verify schema loaded
-        await expect(page.getByText('Schema Loaded Successfully')).toBeVisible({ timeout: 10000 });
-
-        await helpers.screenshot('sql-editor-schema-loaded');
-      }
-    }
+    await helpers.screenshot('sql-editor-schema-loaded');
   });
 
   test('execute simple SELECT query', async ({ page }) => {
@@ -69,18 +54,8 @@ test.describe('SQL Editor - Basic Functionality', () => {
     // Wait for data source selection
     await helpers.waitForLoading();
 
-    // Try to select data source if available
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Type a simple query in Monaco editor
     await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
@@ -129,16 +104,9 @@ test.describe('SQL Editor - Basic Functionality', () => {
 
     // Wait for data source and select if available
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Type complex JOIN query
     await helpers.typeInMonacoEditor(TEST_QUERIES.complexJoin);
@@ -167,16 +135,9 @@ test.describe('SQL Editor - Basic Functionality', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Type aggregation query
     await helpers.typeInMonacoEditor(TEST_QUERIES.aggregation);
@@ -205,16 +166,9 @@ test.describe('SQL Editor - Basic Functionality', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Type CTE query
     await helpers.typeInMonacoEditor(TEST_QUERIES.withSubquery);
@@ -237,16 +191,9 @@ test.describe('SQL Editor - Basic Functionality', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Type a query
     await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
@@ -272,15 +219,9 @@ test.describe('SQL Editor - Basic Functionality', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Switch to Logs tab
     await helpers.switchTab('Logs');
@@ -379,16 +320,9 @@ test.describe('SQL Editor - Schema Browser', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Wait for schema to load
     await page.waitForTimeout(2000);
@@ -413,16 +347,9 @@ test.describe('SQL Editor - Schema Browser', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
 
     // Switch to Schema tab
     await helpers.switchTab('Schema');
@@ -445,19 +372,13 @@ test.describe('SQL Editor - Results Table', () => {
 
     // Wait for data source and run a query
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
-        await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
-        await helpers.clickButton('Run');
-        await helpers.waitForLoading();
-      }
-    }
+
+    // Select a data source
+    await helpers.selectDataSource();
+
+    await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
+    await helpers.clickButton('Run');
+    await helpers.waitForLoading();
   });
 
   test('results table displays data correctly', async ({ page }) => {
@@ -498,35 +419,28 @@ test.describe('SQL Editor - Multiple Queries', () => {
 
     // Wait for data source
     await helpers.waitForLoading();
-    const dataSourceTrigger = page.locator('[data-state="closed"]').first();
-    if (await dataSourceTrigger.isVisible()) {
-      await dataSourceTrigger.click();
-      await page.waitForTimeout(500);
-      const firstOption = page.locator('[role="option"]').first();
-      if (await firstOption.isVisible()) {
-        await firstOption.click();
-        await helpers.waitForLoading();
 
-        // Execute first query
-        await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
-        await helpers.clickButton('Run');
-        await helpers.waitForLoading();
+    // Select a data source
+    await helpers.selectDataSource();
 
-        // Verify first results
-        await helpers.switchTab('Results');
-        await expect(page.locator('table').first()).toBeVisible();
+    // Execute first query
+    await helpers.typeInMonacoEditor(TEST_QUERIES.simple);
+    await helpers.clickButton('Run');
+    await helpers.waitForLoading();
 
-        // Execute second query
-        await helpers.typeInMonacoEditor(TEST_QUERIES.join);
-        await helpers.clickButton('Run');
-        await helpers.waitForLoading();
+    // Verify first results
+    await helpers.switchTab('Results');
+    await expect(page.locator('table').first()).toBeVisible();
 
-        // Verify second results
-        await helpers.switchTab('Results');
-        await expect(page.locator('table').first()).toBeVisible();
+    // Execute second query
+    await helpers.typeInMonacoEditor(TEST_QUERIES.join);
+    await helpers.clickButton('Run');
+    await helpers.waitForLoading();
 
-        await helpers.screenshot('sql-editor-multiple-queries');
-      }
-    }
+    // Verify second results
+    await helpers.switchTab('Results');
+    await expect(page.locator('table').first()).toBeVisible();
+
+    await helpers.screenshot('sql-editor-multiple-queries');
   });
 });
