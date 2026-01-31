@@ -50,12 +50,13 @@ async function getUserWithRoles(email: string): Promise<{
 const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
+      id: 'credentials',
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }

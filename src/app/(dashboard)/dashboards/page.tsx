@@ -202,6 +202,7 @@ export default function DashboardsPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Visibility</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Modified</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -228,6 +229,9 @@ export default function DashboardsPage() {
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(dashboard.created_at)}
                     </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDateTime(dashboard.updated_at)}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -236,17 +240,21 @@ export default function DashboardsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboards/viewer/${dashboard.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboards/editor/${dashboard.id}`}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Link>
+                          <Link href={`/dashboards/${dashboard.id}`}>
+                            <DropdownMenuItem asChild>
+                              <span className="flex items-center cursor-pointer">
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </span>
+                            </DropdownMenuItem>
+                          </Link>
+                          <DropdownMenuItem
+                            disabled
+                            title="Dashboard editor coming soon"
+                            onClick={() => toast.info('Dashboard editor coming soon')}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Details (Coming Soon)
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"

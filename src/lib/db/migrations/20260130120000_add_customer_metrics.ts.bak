@@ -1,0 +1,33 @@
+import type { Knex } from 'knex';
+
+/**
+ * Add customer metrics columns
+ *
+ * Adds total_orders, total_invoice_value, and total_cash_reserves columns
+ * to the customers table and populates them with sample data.
+ */
+export async function up(knex: Knex): Promise<void> {
+  // Add new columns
+  await knex.schema.alterTable('customers', (table) => {
+    table.integer('total_orders').defaultTo(0);
+    table.decimal('total_invoice_value', 15, 2).defaultTo(0.00);
+    table.decimal('total_cash_reserves', 15, 2).defaultTo(0.00);
+  });
+
+  // Populate with sample data using random values
+  await knex.raw(`
+    UPDATE customers
+    SET
+      total_orders = ABS(RANDOM() % 500) + 10,
+      total_invoice_value = (ABS(RANDOM() % 900000) + 10000) / 100.0,
+      total_cash_reserves = (ABS(RANDOM() % 500000) + 5000) / 100.0
+  `);
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.alterTable('customers', (table) => {
+    table.dropColumn('total_orders');
+    table.dropColumn('total_invoice_value');
+    table.dropColumn('total_cash_reserves');
+  });
+}

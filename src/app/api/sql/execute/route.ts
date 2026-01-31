@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db/config';
 import { getConnection } from '@/lib/db/connection-manager';
 import { isReadOnlyQuery } from '@/lib/sql/validator';
 import { logAudit } from '@/lib/security/audit';
-import { paginationConfig, validatePageSize } from '@/lib/config/pagination';
+import { paginationConfig, validatePageSize, sqlEditorConfig } from '@/lib/config/pagination';
 import type { DataSource } from '@/types/database';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
@@ -70,6 +70,59 @@ export async function POST(request: NextRequest) {
 
     // Get connection
     const connection = await getConnection(dataSource);
+
+    // Use SQL Editor pagination: 500 rows per page
+    const PAGE_SIZE = sqlEditorConfig.serverPageSize; // 500 rows
+    const MAX_CLIENT_ROWS = sqlEditorConfig.maxClientRows; // 5000 rows
+
+    // First, check total row count to determine if dataset is too large
+    let totalRowCount = 0;
+    const countSQL = `SELECT COUNT(*) as total FROM (${sql.replace(/;$/, '')}) as count_query`;
+
+    try {
+      let countResult;
+      if (dataSource.client_type === 'sqlite3') {
+        countResult = await connection.raw(countSQL);
+      } else {
+        countResult = await connection.raw(countSQL).timeout(5000);
+      }
+
+      if (Array.isArray(countResult) && countResult[0]) {
+        totalRowCount = Number(countResult[0].total) || 0;
+      }
+    } catch (countError) {
+      console.error('Could not count total rows:', countError);
+      // If count fails, proceed with execution but be cautious
+    }
+
+    // Check if dataset is too large for interactive display
+    const tooLargeForInteractive = totalRowCount > MAX_CLIENT_ROWS;
+
+    if (tooLargeForInteractive) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          columns: [],
+          rows: [],
+          rowCount: totalRowCount,
+          executionTime: 0,
+          truncated: false,
+          pagination: {
+            limit: PAGE_SIZE,
+            offset: effectiveOffset,
+            hasMore: false,
+            serverSide: true,
+          },
+          warning: {
+            code: 'DATASET_TOO_LARGE',
+            message: `Query returns ${totalRowCount.toLocaleString()} rows, which exceeds the interactive limit of ${MAX_CLIENT_ROWS.toLocaleString()} rows.`,
+            suggestion: 'Run this query as a background job instead.',
+            totalRows,
+            interactiveLimit: MAX_CLIENT_ROWS,
+          },
+        },
+      });
+    }
 
     // Apply SERVER-SIDE pagination (MUST use LIMIT and OFFSET at database level)
     let limitedSQL = sql.trim();
@@ -151,13 +204,16 @@ export async function POST(request: NextRequest) {
         columns,
         rows,
         rowCount: rows.length,
+        totalRows: totalRowCount, // Total rows in entire result set (for client-side pagination)
         executionTime,
-        truncated: rows.length >= effectiveLimit,
+        truncated: rows.length >= PAGE_SIZE,
         pagination: {
-          limit: effectiveLimit,
+          limit: PAGE_SIZE, // Always 500
           offset: effectiveOffset,
-          hasMore: rows.length >= effectiveLimit,
-          serverSide: true, // Explicitly mark as server-side pagination
+          totalRows: totalRowCount, // Total rows available
+          hasMore: totalRowCount > 0 ? (effectiveOffset + rows.length) < totalRowCount : false, // Can load more pages
+          serverSide: true,
+          maxClientRows: MAX_CLIENT_ROWS, // Client can accumulate up to this many rows
         },
       },
     });

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,18 +17,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, BarChart3 } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
     try {
+      // Use NextAuth with callbackUrl to ensure proper redirect
       const result = await signIn('credentials', {
         email,
         password,
@@ -38,11 +39,13 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Invalid email or password');
-      } else {
-        router.push('/');
-        router.refresh();
+      } else if (result?.ok) {
+        // Success - manually redirect to dashboard
+        // Force a hard page refresh to ensure server-side session is loaded
+        window.location.href = '/';
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -74,10 +77,9 @@ export default function LoginPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -86,9 +88,8 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
               />

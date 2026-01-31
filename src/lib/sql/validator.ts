@@ -224,12 +224,36 @@ export function extractColumns(sql: string, dialect: string = 'pg'): string[] {
 }
 
 export function isReadOnlyQuery(sql: string): boolean {
-  const sqlTrimmed = sql.trim().toUpperCase();
+  // Remove leading comments (both -- and /* */ style)
+  let sqlTrimmed = sql.trim();
+
+  // Remove single-line comments
+  while (sqlTrimmed.startsWith('--')) {
+    const newlineIndex = sqlTrimmed.indexOf('\n');
+    if (newlineIndex === -1) {
+      // Comment goes to end of string
+      sqlTrimmed = '';
+      break;
+    }
+    sqlTrimmed = sqlTrimmed.substring(newlineIndex + 1).trim();
+  }
+
+  // Remove multi-line comments
+  while (sqlTrimmed.startsWith('/*')) {
+    const endIndex = sqlTrimmed.indexOf('*/');
+    if (endIndex === -1) {
+      sqlTrimmed = '';
+      break;
+    }
+    sqlTrimmed = sqlTrimmed.substring(endIndex + 2).trim();
+  }
+
+  const sqlUpper = sqlTrimmed.toUpperCase();
   return (
-    sqlTrimmed.startsWith('SELECT') ||
-    sqlTrimmed.startsWith('WITH') ||
-    sqlTrimmed.startsWith('EXPLAIN') ||
-    sqlTrimmed.startsWith('SHOW') ||
-    sqlTrimmed.startsWith('DESCRIBE')
+    sqlUpper.startsWith('SELECT') ||
+    sqlUpper.startsWith('WITH') ||
+    sqlUpper.startsWith('EXPLAIN') ||
+    sqlUpper.startsWith('SHOW') ||
+    sqlUpper.startsWith('DESCRIBE')
   );
 }

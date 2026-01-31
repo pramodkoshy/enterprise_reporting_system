@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { processReportJob } from './workers/report-worker';
+import { processEmailBatchJob } from './workers/email-batch-worker';
 import type { JobData, JobResult } from './queue';
 import { WORKER_CONCURRENCY, RATE_LIMITER } from '@/lib/queue/config';
 
@@ -17,6 +18,9 @@ async function processJob(job: Job<JobData>): Promise<JobResult> {
   switch (job.data.type) {
     case 'report:generate':
       return processReportJob(job as Job<typeof job.data>);
+
+    case 'email:batch':
+      return processEmailBatchJob(job as Job<typeof job.data>);
 
     case 'chart:render':
       // Chart rendering would be implemented here

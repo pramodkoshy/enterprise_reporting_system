@@ -3,7 +3,7 @@
  * Manages the currently active database connection for the session
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 
 interface DataSource {
   id: string;
@@ -27,8 +27,14 @@ const ActiveDataSourceContext = createContext<ActiveDataSourceContextType | unde
 export function ActiveDataSourceProvider({ children }: { children: ReactNode }) {
   const [activeDataSource, setActiveDataSourceState] = useState<DataSource | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasFetchedRef = useRef(false);
 
   const fetchActiveDataSource = async () => {
+    // Prevent duplicate fetches
+    if (hasFetchedRef.current) {
+      return;
+    }
+    hasFetchedRef.current = true;
     try {
       setIsLoading(true);
       const response = await fetch('/api/data-sources/active');
@@ -77,13 +83,19 @@ export function ActiveDataSourceProvider({ children }: { children: ReactNode }) 
     fetchActiveDataSource();
   }, []);
 
+  // Wrap refresh to reset the ref
+  const refreshActiveDataSource = async () => {
+    hasFetchedRef.current = false;
+    await fetchActiveDataSource();
+  };
+
   return (
     <ActiveDataSourceContext.Provider
       value={{
         activeDataSource,
         setActiveDataSource,
         isLoading,
-        refreshActiveDataSource: fetchActiveDataSource,
+        refreshActiveDataSource,
       }}
     >
       {children}

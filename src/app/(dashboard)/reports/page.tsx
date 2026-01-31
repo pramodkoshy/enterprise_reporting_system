@@ -45,7 +45,6 @@ import {
   Trash,
   Eye,
   FileText,
-  Play,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateTime } from '@/lib/utils';
@@ -223,13 +222,23 @@ export default function ReportsPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Query</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Modified</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {reports?.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {report.name}
+                        {(!report.name || report.name === 'Draft Report') && (
+                          <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-300">
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {report.description || '-'}
                     </TableCell>
@@ -242,6 +251,9 @@ export default function ReportsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(report.created_at)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDateTime(report.updated_at)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

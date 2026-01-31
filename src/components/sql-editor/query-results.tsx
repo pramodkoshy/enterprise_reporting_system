@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -33,11 +33,27 @@ interface QueryResultsProps {
 }
 
 const ROW_HEIGHT = 40; // Height of each row in pixels
-const ESTIMATED_SCROLL_HEIGHT = 600; // Estimated viewport height
 
 export function QueryResults({ result, isLoading, error, onPageChange }: QueryResultsProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const virtualizerRef = useRef<ReturnType<typeof useVirtualizer> | null>(null);
+
+  // MEMORY LEAK FIX: Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear virtualizer reference to free memory
+      virtualizerRef.current = null;
+    };
+  }, []);
+
+  // MEMORY LEAK FIX: Clear large data when result changes significantly
+  useEffect(() => {
+    if (!result) {
+      // Force cleanup when no result
+      virtualizerRef.current = null;
+    }
+  }, [result]);
 
   const columns: ColumnDef<Record<string, unknown>>[] = useMemo(() => {
     if (!result?.columns) return [];
@@ -77,13 +93,33 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
 
   const rowModel = table.getRowModel();
 
-  // Set up virtual scrolling
+  // Set up virtual scrolling with ref for cleanup
   const virtualizer = useVirtualizer({
     count: rowModel.rows.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 10, // Number of rows to render outside viewport
   });
+
+  // Store virtualizer reference for cleanup
+  virtualizerRef.current = virtualizer;
+
+  const { pagination } = result;
+  const currentPage = pagination ? Math.floor(pagination.offset / pagination.limit) + 1 : 1;
+  const hasNextPage = pagination?.hasMore || false;
+  const hasPrevPage = pagination ? pagination.offset > 0 : false;
+
+  const handlePreviousPage = useCallback(() => {
+    if (hasPrevPage && pagination) {
+      onPageChange?.(Math.max(0, pagination.offset - pagination.limit));
+    }
+  }, [hasPrevPage, pagination, onPageChange]);
+
+  const handleNextPage = useCallback(() => {
+    if (hasNextPage && pagination) {
+      onPageChange?.(pagination.offset + pagination.limit);
+    }
+  }, [hasNextPage, pagination, onPageChange]);
 
   if (isLoading) {
     return (
@@ -116,26 +152,9 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
     );
   }
 
-  const { pagination } = result;
-  const currentPage = pagination ? Math.floor(pagination.offset / pagination.limit) + 1 : 1;
-  const hasNextPage = pagination?.hasMore || false;
-  const hasPrevPage = pagination ? pagination.offset > 0 : false;
-
-  const handlePreviousPage = () => {
-    if (hasPrevPage && pagination) {
-      onPageChange?.(Math.max(0, pagination.offset - pagination.limit));
-    }
-  };
-
-  const handleNextPage = () => {
-    if (hasNextPage && pagination) {
-      onPageChange?.(pagination.offset + pagination.limit);
-    }
-  };
-
   // Calculate total pages
   const totalPages = pagination
-    ? Math.ceil(pagination.total / pagination.limit)
+    ? Math.ceil((pagination.totalRows || result?.rowCount || 0) / pagination.limit)
     : Math.ceil((result?.rowCount || 0) / 100);
 
   return (
@@ -146,7 +165,7 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
           {/* Left Side: Row Counts */}
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="text-sm py-1">
-              {pagination?.total || result.rowCount} total row{(pagination?.total || result.rowCount) !== 1 ? 's' : ''}
+              {pagination?.totalRows || result.rowCount} total row{(pagination?.totalRows || result.rowCount) !== 1 ? 's' : ''}
             </Badge>
             <Badge variant="outline" className="text-sm py-1">
               {rowModel.rows.length} row{rowModel.rows.length !== 1 ? 's' : ''} displayed
@@ -212,9 +231,6 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
       <div
         ref={tableContainerRef}
         className="flex-1 overflow-auto rounded-md border"
-        style={{
-          height: ESTIMATED_SCROLL_HEIGHT,
-        }}
       >
         <Table style={{ borderCollapse: 'separate', borderSpacing: '0' }}>
           <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
@@ -234,60 +250,43 @@ export function QueryResults({ result, isLoading, error, onPageChange }: QueryRe
             ))}
           </TableHeader>
           <TableBody>
-            <tr>
-              <td
-                colSpan={columns.length}
-                style={{
-                  height: `${virtualizer.getTotalSize()}px`,
-                  padding: 0,
-                  verticalAlign: 'top',
-                }}
-              >
-                {rowModel.rows.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <TableCell className="text-center text-muted-foreground">
-                      No results
-                    </TableCell>
-                  </div>
-                ) : (
-                  virtualizer.getVirtualItems().map((virtualRow) => {
-                    const row = rowModel.rows[virtualRow.index];
-                    return (
-                      <div
-                        key={virtualRow.key}
-                        data-index={virtualRow.index}
-                        ref={virtualizer.measureElement}
+            {rowModel.rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
+                  No results
+                </TableCell>
+              </TableRow>
+            ) : (
+              virtualizer.getVirtualItems().map((virtualRow) => {
+                const row = rowModel.rows[virtualRow.index];
+                return (
+                  <TableRow
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      height: `${virtualRow.size}px`,
+                      display: 'table-row',
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="font-mono text-sm border-b py-2"
                         style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: `${virtualRow.size}px`,
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <TableRow style={{ border: 'none' }}>
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell
-                              key={cell.id}
-                              className="font-mono text-sm border-b py-2"
-                              style={{
-                                boxSizing: 'border-box',
-                                display: 'table-cell',
-                              }}
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </div>
-                    );
-                  })
-                )}
-              </td>
-            </tr>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>

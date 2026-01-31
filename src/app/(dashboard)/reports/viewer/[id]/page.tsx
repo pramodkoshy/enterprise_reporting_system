@@ -2,18 +2,20 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/reporting/data-table';
+import { FilterBar } from '@/components/reporting/filter-bar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { Download, RefreshCw, Settings } from 'lucide-react';
+import { RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ReportDefinition, ColumnDefinition } from '@/types/database';
 
 export default function ReportViewerPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const reportId = params.id as string;
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
@@ -27,10 +29,33 @@ export default function ReportViewerPage() {
     },
   });
 
-  const { data: reportData, isLoading: isLoadingData, refetch } = useQuery({
-    queryKey: ['report-data', reportId, page, pageSize],
+  // Fetch report filters
+  const { data: reportFilters } = useQuery({
+    queryKey: ['report-filters', reportId],
     queryFn: async () => {
-      const res = await fetch(`/api/reports/${reportId}/data?page=${page}&pageSize=${pageSize}`);
+      const res = await fetch(`/api/reports/${reportId}/filters`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!reportId,
+  });
+
+  const { data: reportData, isLoading: isLoadingData, refetch } = useQuery({
+    queryKey: ['report-data', reportId, page, pageSize, searchParams.toString()],
+    queryFn: async () => {
+      // Include filter parameters from URL
+      const url = new URL(`/api/reports/${reportId}/data`, window.location.origin);
+      url.searchParams.set('page', String(page));
+      url.searchParams.set('pageSize', String(pageSize));
+
+      // Add all filter parameters from URL
+      for (const [key, value] of searchParams.entries()) {
+        if (key.startsWith('filter_')) {
+          url.searchParams.set(key, value);
+        }
+      }
+
+      const res = await fetch(url.toString());
       const data = await res.json();
       return data.data;
     },
@@ -135,6 +160,15 @@ export default function ReportViewerPage() {
         </div>
       </div>
 
+      {/* Filters Section */}
+      {reportFilters && reportFilters.length > 0 && (
+        <FilterBar
+          reportId={reportId}
+          filters={reportFilters}
+          type="report"
+        />
+      )}
+
       <Card>
         <CardContent className="pt-6">
           <DataTable
@@ -143,6 +177,7 @@ export default function ReportViewerPage() {
             isLoading={isLoadingData}
             totalRows={reportData?.meta?.total}
             pageSize={pageSize}
+            pageIndex={page}
             onExport={handleExport}
             serverSide
             onPaginationChange={(pagination) => {

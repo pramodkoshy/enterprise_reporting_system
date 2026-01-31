@@ -26,8 +26,8 @@ import type { ChartType, ChartConfig, DataMapping } from '@/types/database';
 interface ChartRendererProps {
   data: Record<string, unknown>[];
   chartType: ChartType;
-  chartConfig: ChartConfig;
-  dataMapping: DataMapping;
+  chartConfig: ChartConfig | null | undefined;
+  dataMapping: DataMapping | null | undefined;
   height?: number;
 }
 
@@ -39,6 +39,23 @@ const DEFAULT_COLORS = [
   'hsl(var(--chart-5))',
 ];
 
+const DEFAULT_CHART_CONFIG: ChartConfig = {
+  title: { show: true, text: '' },
+  legend: { show: true, position: 'bottom' },
+  tooltip: { enabled: true },
+  animation: true,
+  colors: DEFAULT_COLORS,
+  xAxis: { label: '', hide: false },
+  yAxis: { label: '', hide: false },
+};
+
+const DEFAULT_DATA_MAPPING: DataMapping = {
+  xAxis: { field: '', label: '' },
+  yAxis: [],
+  groupBy: '',
+  colorBy: '',
+};
+
 export function ChartRenderer({
   data,
   chartType,
@@ -46,25 +63,29 @@ export function ChartRenderer({
   dataMapping,
   height = 400,
 }: ChartRendererProps) {
-  const colors = chartConfig.colors || DEFAULT_COLORS;
+  // Use safe defaults if configs are undefined
+  const safeConfig: ChartConfig = chartConfig || DEFAULT_CHART_CONFIG;
+  const safeMapping: DataMapping = dataMapping || DEFAULT_DATA_MAPPING;
+
+  const colors = safeConfig.colors || DEFAULT_COLORS;
 
   const commonAxisProps = useMemo(
     () => ({
       xAxis: {
-        dataKey: dataMapping.xAxis?.field,
-        label: chartConfig.xAxis?.label
-          ? { value: chartConfig.xAxis.label, position: 'bottom' }
+        dataKey: safeMapping.xAxis?.field,
+        label: safeConfig.xAxis?.label
+          ? { value: safeConfig.xAxis.label, position: 'bottom' }
           : undefined,
-        hide: chartConfig.xAxis?.hide,
+        hide: safeConfig.xAxis?.hide,
       },
       yAxis: {
-        label: chartConfig.yAxis?.label
-          ? { value: chartConfig.yAxis.label, angle: -90, position: 'insideLeft' }
+        label: safeConfig.yAxis?.label
+          ? { value: safeConfig.yAxis.label, angle: -90, position: 'insideLeft' }
           : undefined,
-        hide: chartConfig.yAxis?.hide,
+        hide: safeConfig.yAxis?.hide,
       },
     }),
-    [dataMapping, chartConfig]
+    [safeMapping, safeConfig]
   );
 
   const renderChart = () => {
@@ -75,11 +96,11 @@ export function ChartRenderer({
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis {...commonAxisProps.xAxis} />
             <YAxis {...commonAxisProps.yAxis} />
-            {chartConfig.tooltip?.enabled !== false && <Tooltip />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && (
+              <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
             )}
-            {dataMapping.yAxis?.map((field, index) => (
+            {safeMapping.yAxis?.map((field, index) => (
               <Bar
                 key={field.field}
                 dataKey={field.field}
@@ -96,11 +117,11 @@ export function ChartRenderer({
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis {...commonAxisProps.xAxis} />
             <YAxis {...commonAxisProps.yAxis} />
-            {chartConfig.tooltip?.enabled !== false && <Tooltip />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && (
+              <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
             )}
-            {dataMapping.yAxis?.map((field, index) => (
+            {safeMapping.yAxis?.map((field, index) => (
               <Line
                 key={field.field}
                 type="monotone"
@@ -108,8 +129,6 @@ export function ChartRenderer({
                 name={field.label || field.field}
                 stroke={colors[index % colors.length]}
                 strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
             ))}
           </LineChart>
@@ -121,74 +140,99 @@ export function ChartRenderer({
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis {...commonAxisProps.xAxis} />
             <YAxis {...commonAxisProps.yAxis} />
-            {chartConfig.tooltip?.enabled !== false && <Tooltip />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && (
+              <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
             )}
-            {dataMapping.yAxis?.map((field, index) => (
+            {safeMapping.yAxis?.map((field, index) => (
               <Area
                 key={field.field}
                 type="monotone"
                 dataKey={field.field}
                 name={field.label || field.field}
-                fill={colors[index % colors.length]}
-                fillOpacity={0.3}
                 stroke={colors[index % colors.length]}
-                strokeWidth={2}
+                fill={colors[index % colors.length]}
               />
             ))}
           </AreaChart>
         );
 
       case 'pie':
-        const pieDataKey = dataMapping.yAxis?.[0]?.field || 'value';
-        const pieNameKey = dataMapping.xAxis?.field || 'name';
         return (
-          <PieChart>
-            {chartConfig.tooltip?.enabled !== false && <Tooltip />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
-            )}
-            <Pie
-              data={data}
-              dataKey={pieDataKey}
-              nameKey={pieNameKey}
-              cx="50%"
-              cy="50%"
-              outerRadius={height / 3}
-              label
-            >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-              ))}
-            </Pie>
+          <PieChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && <Legend />}
+            {safeMapping.yAxis?.map((field, index) => (
+              <Pie
+                key={field.field}
+                dataKey={field.field}
+                name={field.label || field.field}
+                fill={colors[index % colors.length]}
+                label
+              />
+            ))}
           </PieChart>
         );
 
       case 'scatter':
         return (
-          <ScatterChart>
+          <ScatterChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis
-              {...commonAxisProps.xAxis}
-              type="number"
-              dataKey={dataMapping.xAxis?.field}
-            />
-            <YAxis
-              {...commonAxisProps.yAxis}
-              type="number"
-              dataKey={dataMapping.yAxis?.[0]?.field}
-            />
-            {chartConfig.tooltip?.enabled !== false && <Tooltip cursor={{ strokeDasharray: '3 3' }} />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
-            )}
-            <Scatter
-              name={dataMapping.yAxis?.[0]?.label || 'Data'}
-              data={data}
-              fill={colors[0]}
-            />
+            <XAxis {...commonAxisProps.xAxis} />
+            <YAxis {...commonAxisProps.yAxis} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && <Legend />}
+            {safeMapping.yAxis?.map((field, index) => (
+              <Scatter
+                key={field.field}
+                dataKey={field.field}
+                name={field.label || field.field}
+                fill={colors[index % colors.length]}
+              />
+            ))}
           </ScatterChart>
+        );
+
+      case 'column':
+        return (
+          <BarChart data={data} layout="horizontal">
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis {...commonAxisProps.xAxis} type="number" />
+            <YAxis {...commonAxisProps.yAxis} type="category" dataKey={safeMapping.xAxis?.field} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && (
+              <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
+            )}
+            {safeMapping.yAxis?.map((field, index) => (
+              <Bar
+                key={field.field}
+                dataKey={field.field}
+                name={field.label || field.field}
+                fill={colors[index % colors.length]}
+              />
+            ))}
+          </BarChart>
+        );
+
+      case 'doughnut':
+        return (
+          <PieChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && <Legend />}
+            {safeMapping.yAxis?.map((field, index) => (
+              <Pie
+                key={field.field}
+                dataKey={field.field}
+                name={field.label || field.field}
+                fill={colors[index % colors.length]}
+                innerRadius={60}
+                outerRadius={80}
+                label
+              />
+            ))}
+          </PieChart>
         );
 
       case 'composed':
@@ -197,13 +241,13 @@ export function ChartRenderer({
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis {...commonAxisProps.xAxis} />
             <YAxis {...commonAxisProps.yAxis} />
-            {chartConfig.tooltip?.enabled !== false && <Tooltip />}
-            {chartConfig.legend?.show !== false && (
-              <Legend verticalAlign={chartConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
+            {safeConfig.tooltip?.enabled !== false && <Tooltip />}
+            {safeConfig.legend?.show !== false && (
+              <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
             )}
-            {dataMapping.yAxis?.map((field, index) => {
-              // Alternate between bar and line for composed chart
-              if (index % 2 === 0) {
+            {safeMapping.yAxis?.map((field, index) => {
+              // First series as bar, rest as line
+              if (index === 0) {
                 return (
                   <Bar
                     key={field.field}
@@ -229,24 +273,18 @@ export function ChartRenderer({
 
       default:
         return (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Unsupported chart type: {chartType}
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground">Unsupported chart type: {chartType}</p>
           </div>
         );
     }
   };
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        No data available
-      </div>
-    );
-  }
-
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      {renderChart()}
-    </ResponsiveContainer>
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        {renderChart()}
+      </ResponsiveContainer>
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ChartRenderer } from '@/components/charts/chart-renderer';
+import { FilterBar } from '@/components/reporting/filter-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
@@ -12,6 +13,7 @@ import type { ChartDefinition, ChartConfig, DataMapping } from '@/types/database
 
 export default function ChartViewerPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const chartId = params.id as string;
 
   const { data: chart, isLoading: isLoadingChart } = useQuery<ChartDefinition>({
@@ -23,10 +25,31 @@ export default function ChartViewerPage() {
     },
   });
 
-  const { data: chartData, isLoading: isLoadingData, refetch } = useQuery({
-    queryKey: ['chart-data', chartId],
+  // Fetch chart filters
+  const { data: chartFilters } = useQuery({
+    queryKey: ['chart-filters', chartId],
     queryFn: async () => {
-      const res = await fetch(`/api/charts/${chartId}/data`);
+      const res = await fetch(`/api/charts/${chartId}/filters`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!chartId,
+  });
+
+  const { data: chartData, isLoading: isLoadingData, refetch } = useQuery({
+    queryKey: ['chart-data', chartId, searchParams.toString()],
+    queryFn: async () => {
+      // Include filter parameters from URL
+      const url = new URL(`/api/charts/${chartId}/data`, window.location.origin);
+
+      // Add all filter parameters from URL
+      for (const [key, value] of searchParams.entries()) {
+        if (key.startsWith('filter_')) {
+          url.searchParams.set(key, value);
+        }
+      }
+
+      const res = await fetch(url.toString());
       const data = await res.json();
       return data.data;
     },
@@ -34,7 +57,7 @@ export default function ChartViewerPage() {
     refetchInterval: chart?.refresh_interval ? chart.refresh_interval * 1000 : undefined,
   });
 
-  const handleExport = async (format: 'png' | 'svg') => {
+  const handleExport = async (_format: 'png' | 'svg') => {
     toast.info('Export feature coming soon');
   };
 
@@ -99,6 +122,15 @@ export default function ChartViewerPage() {
         </div>
       </div>
 
+      {/* Filters Section */}
+      {chartFilters && chartFilters.length > 0 && (
+        <FilterBar
+          chartId={chartId}
+          filters={chartFilters}
+          type="chart"
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>{chartConfig.title?.text || chart.name}</CardTitle>
@@ -110,7 +142,7 @@ export default function ChartViewerPage() {
             </div>
           ) : (
             <ChartRenderer
-              data={chartData?.data || []}
+              data={chartData?.rows || []}
               chartType={chart.chart_type}
               chartConfig={chartConfig}
               dataMapping={dataMapping}

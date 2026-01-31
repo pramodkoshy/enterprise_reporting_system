@@ -73,6 +73,13 @@
   @apply rounded-md border;
 }
 
+/* Monaco Editor Wrapper - Create isolation from browser extensions */
+.monaco-editor-wrapper {
+  position: relative;
+  isolation: isolate;
+  contain: layout style paint;
+}
+
 /* Monaco Editor Widgets - Ensure they appear above all other elements */
 .monaco-editor .suggest-widget {
   z-index: 1000 !important;
@@ -168,6 +175,38 @@
   bottom: 0;
   right: 0;
   cursor: se-resize;
+}
+
+/* Enhanced resize handles for dashboard editing */
+.react-grid-item.resizing {
+  opacity: 1;
+  z-index: 10;
+}
+
+.react-grid-item > .react-resizable-handle {
+  background-image: none;
+  background-color: hsl(var(--primary));
+  opacity: 0.6;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid white;
+  border-bottom: 2px solid white;
+}
+
+.react-grid-item > .react-resizable-handle:hover {
+  opacity: 1;
+}
+
+/* Widget container hover effect */
+.widget-container:hover .react-resizable-handle {
+  opacity: 0.8;
 }
 
 /* Scrollbar customization */

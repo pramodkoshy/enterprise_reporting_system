@@ -40,7 +40,6 @@ import {
   FolderOpen,
   Edit,
   Trash2,
-  MoreVertical,
   AlertCircle,
   AlertTriangle,
 } from 'lucide-react';
@@ -829,7 +828,7 @@ export default function DataSourcesPage() {
             <DialogHeader>
               <DialogTitle>Delete Data Source</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{dataSourceToDelete?.name}"? This action cannot be undone.
+                Are you sure you want to delete &ldquo;{dataSourceToDelete?.name}&rdquo;? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">

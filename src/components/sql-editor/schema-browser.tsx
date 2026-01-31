@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { ChevronRight, ChevronDown, Table, Eye, Key, Hash, Type } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ interface SchemaBrowserProps {
   onColumnClick?: (tableName: string, columnName: string) => void;
 }
 
-export function SchemaBrowser({
+function SchemaBrowserComponent({
   schema,
   isLoading,
   onTableClick,
@@ -146,7 +146,7 @@ interface TableItemProps {
   onColumnClick?: (tableName: string, columnName: string) => void;
 }
 
-function TableItem({
+const TableItem = memo(function TableItem({
   table,
   isExpanded,
   onToggle,
@@ -191,7 +191,7 @@ function TableItem({
       )}
     </div>
   );
-}
+});
 
 interface ViewItemProps {
   view: ViewInfo;
@@ -201,7 +201,7 @@ interface ViewItemProps {
   onColumnClick?: (tableName: string, columnName: string) => void;
 }
 
-function ViewItem({
+const ViewItem = memo(function ViewItem({
   view,
   isExpanded,
   onToggle,
@@ -245,7 +245,7 @@ function ViewItem({
       )}
     </div>
   );
-}
+});
 
 interface ColumnItemProps {
   column: ColumnSchema;
@@ -254,7 +254,7 @@ interface ColumnItemProps {
   onClick?: (tableName: string, columnName: string) => void;
 }
 
-function ColumnItem({ column, tableName, primaryKey, onClick }: ColumnItemProps) {
+const ColumnItem = memo(function ColumnItem({ column, tableName, primaryKey, onClick }: ColumnItemProps) {
   const isPrimary = primaryKey?.includes(column.name) || column.isPrimaryKey;
 
   return (
@@ -278,4 +278,7 @@ function ColumnItem({ column, tableName, primaryKey, onClick }: ColumnItemProps)
       )}
     </div>
   );
-}
+});
+
+// Memoize to prevent unnecessary re-renders
+export const SchemaBrowser = memo(SchemaBrowserComponent);

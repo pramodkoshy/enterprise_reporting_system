@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, memo, useEffect } from 'react';
 import Editor, { OnMount, OnChange } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useTheme } from 'next-themes';
@@ -13,37 +13,39 @@ interface MonacoSQLEditorProps {
   readOnly?: boolean;
   height?: string | number;
   className?: string;
-  schema?: SchemaInfo | null;
+  sche
+  ma?: SchemaInfo | null;
 }
 
-export function MonacoSQLEditor({
+function MonacoSQLEditorComponent({
   value,
   onChange,
   onExecute,
-  readOnly = false,
+  readOnly: _readOnly, // Unused - editor is always editable
   height = '400px',
   className,
-  schema,
 }: MonacoSQLEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const { theme } = useTheme();
-
-  // Store schema in a ref for the completion provider to access
-  const schemaRef = useRef(schema);
-
-  // Update schema ref when schema changes
-  useEffect(() => {
-    schemaRef.current = schema;
-  }, [schema]);
 
   const handleEditorMount: OnMount = useCallback(
     (editor, monaco) => {
       editorRef.current = editor;
 
-      // Ensure clipboard context menu items are visible
+      // DEBUG: Log to verify this code runs
+      console.log('[Monaco Editor] Mounting - forcing editable mode');
+
+      // Force editor to be editable (ignore readOnly prop)
       editor.updateOptions({
+        readOnly: false, // Always false, never readonly
+        domReadOnly: false,
         contextmenu: true,
       });
+
+      // Verify the options were set
+      const options = editor.getOptions();
+      console.log('[Monaco Editor] readOnly option:', options.get(monaco.editor.EditorOption.readOnly));
+      console.log('[Monaco Editor] domReadOnly option:', options.get(monaco.editor.EditorOption.domReadOnly));
 
       // Add keyboard shortcut for execute (Ctrl/Cmd + Enter)
       editor.addCommand(
@@ -64,148 +66,6 @@ export function MonacoSQLEditor({
     [onExecute]
   );
 
-  // Register completion provider ONCE (not on every schema change)
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    const monaco = (window as any).monaco;
-    if (!monaco) return;
-
-    // Register completion provider - reads from schemaRef instead of depending on schema prop
-    const provider = monaco.languages.registerCompletionItemProvider('sql', {
-      provideCompletionItems: (model: any, position: any) => {
-        const word = model.getWordUntilPosition(position);
-        const range = {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn,
-        };
-
-        const suggestions: any[] = [];
-
-        // SQL Keywords
-        suggestions.push(
-          ...['SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
-            'ON', 'AND', 'OR', 'NOT', 'IN', 'LIKE', 'BETWEEN', 'IS', 'NULL',
-            'ORDER', 'BY', 'ASC', 'DESC', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET',
-            'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'CREATE',
-            'TABLE', 'INDEX', 'VIEW', 'DROP', 'ALTER', 'ADD', 'COLUMN',
-            'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES', 'UNIQUE', 'DEFAULT',
-            'CONSTRAINT', 'CASCADE', 'UNION', 'ALL', 'DISTINCT', 'AS',
-            'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'CAST', 'COALESCE',
-            'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'WITH', 'RECURSIVE',
-          ].map((keyword) => ({
-            label: keyword,
-            kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: keyword,
-            range,
-            sortText: `0_${keyword}`,
-          }))
-        );
-
-        // Common Functions
-        suggestions.push(
-          ...['COUNT(*)', 'SUM()', 'AVG()', 'MIN()', 'MAX()', 'COALESCE()',
-            'NULLIF()', 'CAST()', 'CONVERT()', 'SUBSTRING()', 'CONCAT()',
-            'LOWER()', 'UPPER()', 'TRIM()', 'LENGTH()', 'NOW()', 'CURRENT_DATE',
-            'CURRENT_TIMESTAMP', 'DATE()', 'YEAR()', 'MONTH()', 'DAY()',
-          ].map((func) => ({
-            label: func,
-            kind: monaco.languages.CompletionItemKind.Function,
-            insertText: func,
-            range,
-            sortText: `1_${func}`,
-          }))
-        );
-
-        // Schema-based completions - read from ref instead of prop
-        const currentSchema = schemaRef.current;
-        if (currentSchema) {
-          // Add tables
-          currentSchema.tables.forEach((table) => {
-            suggestions.push({
-              label: table.name,
-              kind: monaco.languages.CompletionItemKind.Class,
-              insertText: table.name,
-              range,
-              detail: 'Table',
-              documentation: `Columns: ${table.columns.map(c => c.name).join(', ')}`,
-              sortText: `2_${table.name}`,
-            });
-
-            // Add columns with table prefix
-            table.columns.forEach((column) => {
-              suggestions.push({
-                label: `${table.name}.${column.name}`,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: `${table.name}.${column.name}`,
-                range,
-                detail: `Column (${table.name})`,
-                documentation: `Type: ${column.type}${column.nullable ? ' | Nullable' : ' | Not null'}`,
-                sortText: `3_${table.name}_${column.name}`,
-              });
-
-              // Also add column name alone
-              suggestions.push({
-                label: column.name,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: column.name,
-                range,
-                detail: `Column from ${table.name}`,
-                documentation: `Type: ${column.type}${column.nullable ? ' | Nullable' : ' | Not null'}`,
-                sortText: `3_${column.name}`,
-              });
-            });
-          });
-
-          // Add views
-          currentSchema.views.forEach((view) => {
-            suggestions.push({
-              label: view.name,
-              kind: monaco.languages.CompletionItemKind.Interface,
-              insertText: view.name,
-              range,
-              detail: 'View',
-              documentation: `Columns: ${view.columns.map(c => c.name).join(', ')}`,
-              sortText: `2_${view.name}`,
-            });
-
-            // Add columns from views
-            view.columns.forEach((column) => {
-              suggestions.push({
-                label: `${view.name}.${column.name}`,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: `${view.name}.${column.name}`,
-                range,
-                detail: `Column (${view.name})`,
-                documentation: `Type: ${column.type}`,
-                sortText: `3_${view.name}_${column.name}`,
-              });
-
-              // Column name alone
-              suggestions.push({
-                label: column.name,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: column.name,
-                range,
-                detail: `Column from ${view.name}`,
-                documentation: `Type: ${column.type}`,
-                sortText: `3_${column.name}`,
-              });
-            });
-          });
-        }
-
-        return { suggestions };
-      },
-    });
-
-    return () => {
-      provider.dispose();
-    };
-  }, []); // Empty dependency array - run ONCE
-
   const handleChange: OnChange = useCallback(
     (value) => {
       onChange(value || '');
@@ -213,17 +73,71 @@ export function MonacoSQLEditor({
     [onChange]
   );
 
+  // Force textarea to be editable and ensure pointer events work (monaco-editor workaround)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const monacoContainer = document.querySelector('.monaco-editor');
+      const textarea = document.querySelector('.monaco-editor textarea');
+
+      if (monacoContainer && textarea) {
+        console.log('[Monaco Editor] Fixing z-index and input blocking...');
+
+        // CRITICAL FIX: Bring textarea to front (z-index: -10 is wrong!)
+        (textarea as HTMLTextAreaElement).style.zIndex = '1';
+        console.log('[Monaco Editor] Set textarea z-index to 1');
+
+        // Remove readonly
+        (textarea as HTMLTextAreaElement).readOnly = false;
+        (textarea as HTMLTextAreaElement).removeAttribute('readonly');
+        console.log('[Monaco Editor] Removed readonly');
+
+        // Remove aria-hidden
+        textarea.removeAttribute('aria-hidden');
+        console.log('[Monaco Editor] Removed aria-hidden');
+
+        // Ensure pointer events are enabled
+        const overflowGuard = monacoContainer.querySelector('.overflow-guard');
+        if (overflowGuard) {
+          (overflowGuard as HTMLElement).style.pointerEvents = 'auto';
+        }
+
+        const viewLines = monacoContainer.querySelector('.view-lines');
+        if (viewLines) {
+          (viewLines as HTMLElement).style.pointerEvents = 'auto';
+        }
+
+        // Focus the textarea
+        (textarea as HTMLTextAreaElement).focus();
+        console.log('[Monaco Editor] Focused textarea');
+        console.log('[Monaco Editor] ✓ ALL FIXES APPLIED - TRY TYPING NOW!');
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className={className} style={{ height: typeof height === 'number' ? `${height}px` : height, zIndex: 1 }}>
+    <div
+      className={className}
+      style={{
+        height: typeof height === 'number' ? `${height}px` : height,
+        zIndex: 9999,
+        pointerEvents: 'auto',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
       <Editor
-        height="100%"
+        height={typeof height === 'number' ? height : parseInt(height as string)}
         language="sql"
         theme={theme === 'dark' ? 'vs-dark' : 'light'}
         value={value}
         onChange={handleChange}
         onMount={handleEditorMount}
         options={{
-          readOnly,
+          readOnly: false,
+          domReadOnly: false,
           minimap: { enabled: false },
           lineNumbers: 'on',
           folding: true,
@@ -253,3 +167,15 @@ export function MonacoSQLEditor({
     </div>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const MonacoSQLEditor = memo(MonacoSQLEditorComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onExecute === nextProps.onExecute &&
+    prevProps.readOnly === nextProps.readOnly &&
+    prevProps.height === nextProps.height &&
+    prevProps.className === nextProps.className
+  );
+});

@@ -36,10 +36,17 @@ function getEnvBoolean(key: string, defaultValue: boolean): boolean {
 export const paginationConfig: PaginationConfig = {
   defaultPageSize: getEnvNumber('DEFAULT_PAGE_SIZE', 50),
   maxPageSize: getEnvNumber('MAX_PAGE_SIZE', 1000),
-  dataTablePageSize: getEnvNumber('DATA_TABLE_PAGE_SIZE', 100),
+  dataTablePageSize: getEnvNumber('DATA_TABLE_PAGE_SIZE', 500), // Server-side: 500 rows per page
   exportPageSize: getEnvNumber('EXPORT_PAGE_SIZE', 1000),
   virtualScrollThreshold: getEnvNumber('VIRTUAL_SCROLL_THRESHOLD', 500),
   enableVirtualScrolling: getEnvBoolean('ENABLE_VIRTUAL_SCROLLING', true),
+};
+
+// Client-side pagination for SQL Editor results
+export const sqlEditorConfig = {
+  serverPageSize: 500, // Server-side page size
+  maxClientRows: 5000, // Maximum rows to accumulate client-side (10 pages)
+  maxPagesToLoad: 10, // Maximum number of pages to accumulate
 };
 
 /**

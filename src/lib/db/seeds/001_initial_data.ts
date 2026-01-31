@@ -104,6 +104,72 @@ export async function seed(knex: Knex): Promise<void> {
     role_id: analystRoleId,
   });
 
+  // Create a demo data source (SQLite Sakila database)
+  const dataSourceId = uuidv4();
+  await knex('data_sources').insert({
+    id: dataSourceId,
+    name: 'Sakila Demo DB',
+    description: 'Sample Sakila database for testing',
+    client_type: 'sqlite3',
+    connection_config: JSON.stringify({
+      filename: './data/uploads/sakila.db',
+    }),
+    is_active: true,
+    created_by: adminUserId,
+  });
+
+  // Create default saved queries for the Sakila database
+  await knex('saved_queries').insert([
+    {
+      id: uuidv4(),
+      name: 'Top 10 Actors by Film Count',
+      description: 'Shows the top 10 actors who have appeared in the most films',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  a.first_name,\n  a.last_name,\n  COUNT(fa.film_id) as film_count\nFROM actor a\nJOIN film_actor fa ON a.actor_id = fa.actor_id\nGROUP BY a.actor_id, a.first_name, a.last_name\nORDER BY film_count DESC\nLIMIT 10;',
+      created_by: adminUserId,
+    },
+    {
+      id: uuidv4(),
+      name: 'Monthly Revenue Summary',
+      description: 'Total revenue grouped by month and year',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  strftime(\'%Y-%m\', p.payment_date) as month,\n  SUM(p.amount) as total_revenue,\n  COUNT(p.payment_id) as payment_count\nFROM payment p\nGROUP BY month\nORDER BY month DESC\nLIMIT 24;',
+      created_by: adminUserId,
+    },
+    {
+      id: uuidv4(),
+      name: 'Film Inventory by Category',
+      description: 'Number of films in each category',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  c.name as category,\n  COUNT(fc.film_id) as film_count\nFROM category c\nJOIN film_category fc ON c.category_id = fc.category_id\nGROUP BY c.category_id, c.name\nORDER BY film_count DESC;',
+      created_by: adminUserId,
+    },
+    {
+      id: uuidv4(),
+      name: 'Customer Rental Activity',
+      description: 'Top customers by rental count and total spending',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  c.first_name,\n  c.last_name,\n  COUNT(r.rental_id) as rental_count,\n  SUM(p.amount) as total_spent\nFROM customer c\nJOIN rental r ON c.customer_id = r.customer_id\nJOIN payment p ON r.rental_id = p.rental_id\nGROUP BY c.customer_id, c.first_name, c.last_name\nORDER BY total_spent DESC\nLIMIT 20;',
+      created_by: adminUserId,
+    },
+    {
+      id: uuidv4(),
+      name: 'Films by Rating',
+      description: 'Count of films grouped by rating (G, PG, PG-13, R, NC-17)',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  rating,\n  COUNT(*) as film_count,\n  AVG(replacement_cost) as avg_replacement_cost\nFROM film\nGROUP BY rating\nORDER BY film_count DESC;',
+      created_by: adminUserId,
+    },
+    {
+      id: uuidv4(),
+      name: 'Store Performance',
+      description: 'Revenue and rental counts per store',
+      data_source_id: dataSourceId,
+      sql_content: 'SELECT\n  s.store_id,\n  COUNT(DISTINCT s.staff_id) as staff_count,\n  COUNT(DISTINCT c.customer_id) as customer_count,\n  COUNT(DISTINCT r.rental_id) as rental_count,\n  SUM(p.amount) as total_revenue\nFROM store s\nLEFT JOIN staff st ON s.store_id = st.store_id\nLEFT JOIN customer c ON s.store_id = c.store_id\nLEFT JOIN inventory i ON s.store_id = i.store_id\nLEFT JOIN rental r ON i.inventory_id = r.inventory_id\nLEFT JOIN payment p ON r.rental_id = p.rental_id\nGROUP BY s.store_id;',
+      created_by: adminUserId,
+    },
+  ]);
+
   console.log('Seed data created successfully');
   console.log('=================================');
   console.log('DEFAULT ADMIN CREDENTIALS:');

@@ -26,6 +26,7 @@ import {
   Shield,
   Terminal,
   Layers,
+  Filter,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +41,7 @@ const mainNavItems = [
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/charts', label: 'Charts', icon: BarChart3 },
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
+  { href: '/filters', label: 'Filters', icon: Filter },
   { href: '/jobs', label: 'Jobs', icon: Play },
 ];
 

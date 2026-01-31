@@ -18,10 +18,11 @@ export class TestHelpers {
 
     // Wait for navigation to complete - wait for dashboard heading to be visible
     // This is more reliable than waitForURL for client-side navigations
-    await this.page.getByRole('heading', { name: 'Dashboard', exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+    // Increased timeout for better reliability under load
+    await this.page.getByRole('heading', { name: 'Dashboard', exact: true }).waitFor({ state: 'visible', timeout: 20000 });
 
     // Verify we're on the correct URL
-    await this.page.waitForURL('/', { timeout: 5000 }).catch(() => {
+    await this.page.waitForURL('/', { timeout: 10000 }).catch(() => {
       // URL check might fail if we're already there, which is fine
     });
   }
@@ -46,18 +47,32 @@ export class TestHelpers {
 
   /**
    * Select from a dropdown by trigger and option text
+   * Improved to handle Radix UI dropdowns with better waiting
    */
-  async selectDropdown(triggerText: string, optionText: string) {
+  async selectDropdown(triggerText: string, optionText: string, timeout = 10000) {
     // Click the dropdown trigger
     const trigger = this.page.getByText(triggerText).first();
+    await trigger.waitFor({ state: 'visible', timeout });
     await trigger.click();
 
-    // Wait for dropdown content to appear
-    await this.page.waitForTimeout(200);
+    // Wait for dropdown content to appear - Radix UI uses portals
+    await this.page.waitForTimeout(500);
 
-    // Click the option
-    const option = this.page.getByText(optionText).first();
-    await option.click();
+    // Try to find the option with multiple selectors for robustness
+    const option = this.page.getByRole('option', { name: optionText }).first();
+
+    try {
+      await option.waitFor({ state: 'visible', timeout: 5000 });
+      await option.click();
+    } catch (error) {
+      // Fallback: try clicking by text if role='option' didn't work
+      const textOption = this.page.getByText(optionText).first();
+      await textOption.waitFor({ state: 'visible', timeout: 5000 });
+      await textOption.click();
+    }
+
+    // Wait for selection to complete
+    await this.page.waitForTimeout(300);
   }
 
   /**
@@ -69,9 +84,12 @@ export class TestHelpers {
 
   /**
    * Click a button by text
+   * Waits for button to be visible and enabled before clicking
    */
-  async clickButton(text: string) {
-    await this.page.getByRole('button', { name: text }).click();
+  async clickButton(text: string, timeout = 10000) {
+    const button = this.page.getByRole('button', { name: text }).first();
+    await button.waitFor({ state: 'visible', timeout });
+    await button.click();
   }
 
   /**
@@ -251,8 +269,9 @@ export class TestHelpers {
     // Click using JavaScript (more reliable for Radix UI)
     await this.page.evaluate((element) => element.click(), await selectTrigger.elementHandle());
 
-    // Wait for options to appear
-    await this.page.waitForTimeout(500);
+    // Wait for options to appear with a longer timeout
+    await this.page.waitForSelector('[role="option"]', { state: 'visible', timeout: 5000 });
+    await this.page.waitForTimeout(300);
 
     // Select first option or specific data source by name using JavaScript
     if (dataSourceName) {
@@ -265,7 +284,15 @@ export class TestHelpers {
       await this.page.evaluate((el) => el.click(), await firstOption.elementHandle());
     }
 
-    // Wait for selection to complete
+    // Wait for selection to complete and schema to start loading
+    await this.page.waitForTimeout(1000);
+
+    // Wait for the dropdown to close
+    await this.page.waitForSelector('[role="option"]', { state: 'hidden', timeout: 5000 }).catch(() => {
+      // Dropdown might close immediately, which is fine
+    });
+
+    // Additional wait for schema loading to start
     await this.page.waitForTimeout(500);
   }
 

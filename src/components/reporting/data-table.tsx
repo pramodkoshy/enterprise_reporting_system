@@ -62,6 +62,7 @@ interface DataTableProps<TData> {
   onPaginationChange?: (pagination: PaginationState) => void;
   onSortingChange?: (sorting: SortingState) => void;
   onFilterChange?: (filters: ColumnFiltersState) => void;
+  pageIndex?: number;
 }
 
 export function DataTable<TData>({
@@ -76,15 +77,22 @@ export function DataTable<TData>({
   onPaginationChange,
   onSortingChange,
   onFilterChange,
+  pageIndex: externalPageIndex = 0,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: externalPageIndex,
     pageSize,
   });
   const [globalFilter, setGlobalFilter] = useState('');
+
+  // For server-side pagination, use the external page index from parent
+  // For client-side pagination, use internal state
+  const pagination: PaginationState = serverSide
+    ? { pageIndex: externalPageIndex, pageSize }
+    : internalPagination;
 
   const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
     const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
@@ -100,8 +108,14 @@ export function DataTable<TData>({
 
   const handlePaginationChange = (updater: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
-    setPagination(newPagination);
-    onPaginationChange?.(newPagination);
+
+    // Always update internal state to keep table in sync
+    setInternalPagination(newPagination);
+
+    // For server-side, notify parent to fetch new data
+    if (serverSide) {
+      onPaginationChange?.(newPagination);
+    }
   };
 
   const table = useReactTable({

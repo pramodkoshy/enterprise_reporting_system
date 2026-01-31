@@ -186,6 +186,8 @@ export type ChartType =
   | 'area'
   | 'pie'
   | 'scatter'
+  | 'column'
+  | 'doughnut'
   | 'composed';
 
 export interface ChartDefinition {
@@ -244,6 +246,43 @@ export interface FieldMapping {
   label?: string;
   formatter?: FormatterDefinition;
   aggregation?: AggregationType;
+}
+
+// Filter Types
+export interface FilterDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  data_source_id: string;
+  filter_query: string;
+  display_field: string;
+  value_field: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportFilter {
+  id: string;
+  report_id: string;
+  filter_id: string;
+  target_column: string;
+  filter_order: number;
+  created_at: string;
+}
+
+export interface ChartFilter {
+  id: string;
+  chart_id: string;
+  filter_id: string;
+  target_column: string;
+  filter_order: number;
+  created_at: string;
+}
+
+export interface FilterOption {
+  value: string | number;
+  label: string;
 }
 
 // Dashboard Types
@@ -370,7 +409,9 @@ export type ResourceType =
   | 'query'
   | 'report'
   | 'chart'
+  | 'filter'
   | 'dashboard'
+  | 'dashboard_widget'
   | 'job'
   | 'queue'
   | 'user'

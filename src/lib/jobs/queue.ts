@@ -5,7 +5,7 @@ const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:63
   maxRetriesPerRequest: null,
 });
 
-export type JobType = 'report:generate' | 'chart:render' | 'data:export' | 'scheduled:refresh';
+export type JobType = 'report:generate' | 'chart:render' | 'data:export' | 'scheduled:refresh' | 'email:batch';
 
 export interface ReportJobData {
   type: 'report:generate';
@@ -13,6 +13,18 @@ export interface ReportJobData {
   userId: string;
   parameters?: Record<string, unknown>;
   format?: 'csv' | 'xlsx' | 'pdf';
+}
+
+export interface EmailBatchJobData {
+  type: 'email:batch';
+  queryId: string; // Query to generate report data
+  emailTemplateId: string; // Template for email body
+  recipientQueryId: string; // Query to get recipient list (e.g., customers to email)
+  recipientEmailColumn: string; // Column name containing email addresses
+  userId: string;
+  format?: 'csv' | 'xlsx' | 'pdf'; // Report attachment format
+  reportName?: string; // Name for the attached report
+  parameters?: Record<string, unknown>;
 }
 
 export interface ChartJobData {
@@ -37,7 +49,7 @@ export interface ScheduledRefreshData {
   userId: string;
 }
 
-export type JobData = ReportJobData | ChartJobData | ExportJobData | ScheduledRefreshData;
+export type JobData = ReportJobData | ChartJobData | ExportJobData | ScheduledRefreshData | EmailBatchJobData;
 
 export interface JobResult {
   success: boolean;
@@ -45,6 +57,8 @@ export interface JobResult {
   rowCount?: number;
   duration: number;
   error?: string;
+  emailsSent?: number;
+  attachmentPath?: string;
 }
 
 // Create the main job queue
