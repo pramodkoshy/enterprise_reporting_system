@@ -249,6 +249,24 @@ export interface FieldMapping {
 }
 
 // Filter Types
+export type FilterFieldType = 'id' | 'number' | 'date' | 'text';
+
+export type FilterOperator =
+  | 'in'                    // For ID fields: IN clause with multiselect
+  | 'equals'                // For numbers: ==
+  | 'less_than'             // For numbers: <
+  | 'less_than_equal'       // For numbers: <=
+  | 'greater_than'          // For numbers: >
+  | 'greater_than_equal'    // For numbers: >=
+  | 'between'               // For dates: BETWEEN
+  | 'starts_with'           // For text: STARTS WITH
+  | 'contains';             // For text: CONTAINS
+
+export interface DateValidationConfig {
+  max_from_date?: string;  // From date must be <= this date (ISO format)
+  min_to_date?: string;    // To date must be >= this date (ISO format)
+}
+
 export interface FilterDefinition {
   id: string;
   name: string;
@@ -257,6 +275,9 @@ export interface FilterDefinition {
   filter_query: string;
   display_field: string;
   value_field: string;
+  field_type?: FilterFieldType;
+  operator?: FilterOperator;
+  date_validation_config?: string; // JSON string of DateValidationConfig
   created_by?: string;
   created_at: string;
   updated_at: string;

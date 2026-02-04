@@ -123,3 +123,8 @@ const authConfig: NextAuthConfig = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+// Alias for auth() - used for consistency with session management
+export async function getAuthSession() {
+  return await auth();
+}

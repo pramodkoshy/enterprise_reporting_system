@@ -13,8 +13,7 @@ interface MonacoSQLEditorProps {
   readOnly?: boolean;
   height?: string | number;
   className?: string;
-  sche
-  ma?: SchemaInfo | null;
+  schema?: SchemaInfo | null;
 }
 
 function MonacoSQLEditorComponent({

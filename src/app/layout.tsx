@@ -10,6 +10,10 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Enterprise Reporting System',
   description: 'Enterprise Reporting and Dashboard System',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

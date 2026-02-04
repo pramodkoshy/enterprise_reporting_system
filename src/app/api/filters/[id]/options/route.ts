@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/config';
 import { getConfigDB } from '@/lib/db/config';
-import { getConnectionManager } from '@/lib/db/connection-manager';
+import { getConnection } from '@/lib/db/connection-manager';
 
 // GET filter options (executes filter query)
 export async function GET(
@@ -23,16 +23,20 @@ export async function GET(
       return NextResponse.json({ error: 'Filter not found' }, { status: 404 });
     }
 
-    // Get connection to the data source
-    const connectionManager = getConnectionManager();
-    const connection = await connectionManager.getConnection(filter.data_source_id);
+    // Get the data source
+    const dataSource = await db('data_sources')
+      .where('id', filter.data_source_id)
+      .first();
 
-    if (!connection) {
+    if (!dataSource) {
       return NextResponse.json(
-        { error: 'Data source not found or not connected' },
+        { error: 'Data source not found' },
         { status: 404 }
       );
     }
+
+    // Get connection to the data source
+    const connection = await getConnection(dataSource);
 
     // Execute filter query
     const results = await connection.raw(filter.filter_query);
@@ -41,10 +45,19 @@ export async function GET(
     const rows = Array.isArray(results) ? results : results?.rows || [];
 
     // Map results to filter options
-    const options = rows.map((row: Record<string, unknown>) => ({
-      value: row[filter.value_field],
-      label: String(row[filter.display_field] || ''),
-    }));
+    const options = rows.map((row: Record<string, unknown>) => {
+      // Split display_field by comma and trim whitespace
+      const displayFields = filter.display_field.split(',').map(f => f.trim());
+
+      // Concatenate display field values
+      const labelParts = displayFields.map(field => String(row[field] || ''));
+      const label = labelParts.join(' ');
+
+      return {
+        value: String(row[filter.value_field] || ''),
+        label,
+      };
+    });
 
     return NextResponse.json(options);
   } catch (error) {

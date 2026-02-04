@@ -285,6 +285,34 @@ export default function SQLEditorPage() {
     }
   }, [selectedDataSource, queryClient]);
 
+  // Handle pagination - fetch specific page from server
+  const handlePageChange = useCallback(async (offset: number) => {
+    if (!selectedDataSource || !sqlContent) {
+      return;
+    }
+
+    const res = await fetch('/api/sql/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql: sqlContent,
+        dataSourceId: selectedDataSource,
+        limit: 500,
+        offset,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.success && !data.data.warning) {
+      setQueryResult({
+        ...data.data,
+        rows: data.data.rows || [],
+      });
+      setCurrentOffset(offset);
+      setHasMore(data.data.pagination?.hasMore || false);
+    }
+  }, [sqlContent, selectedDataSource]);
+
   const handleValidate = useCallback(async () => {
     if (!sqlContent.trim()) {
       setValidationResult({
@@ -590,6 +618,7 @@ export default function SQLEditorPage() {
                       result={queryResult}
                       isLoading={false}
                       error={null}
+                      onPageChange={handlePageChange}
                     />
                   </div>
                 </div>

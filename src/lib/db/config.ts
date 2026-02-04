@@ -13,6 +13,11 @@ export function getDb(): Knex {
   return db;
 }
 
+// Alias for getDb() - used for clarity when accessing config database
+export function getConfigDB(): Knex {
+  return getDb();
+}
+
 export async function closeDb(): Promise<void> {
   if (db) {
     await db.destroy();

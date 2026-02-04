@@ -1,0 +1,277 @@
+Total messages: 68 (Errors: 7, Warnings: 0)
+
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[ERROR] Warning: In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+    at button
+    at _c (webpack-internal:///(app-pages-browser)/./src/components/ui/button.tsx:40:11)
+    at button
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:69:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popover/dist/index.mjs:137:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Popper (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:54:13)
+    at Popover (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popover/dist/index.mjs:64:13)
+    at eval (webpack-internal:///(app-pages-browser)/./src/components/ui/multi-select.tsx:41:11)
+    at div
+    at div
+    at div
+    at div
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:37:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-focus-scope/dist/index.mjs:27:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:317:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:239:58)
+    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:27:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:211:64)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-portal/dist/index.mjs:22:24)
+    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:27:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at DialogPortal (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:131:13)
+    at _c1 (webpack-internal:///(app-pages-browser)/./src/components/ui/dialog.tsx:44:11)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Dialog (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:61:13)
+    at div
+    at FiltersPage (webpack-internal:///(app-pages-browser)/./src/app/(dashboard)/filters/page.tsx:37:95)
+    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at Suspense
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at main
+    at div
+    at div
+    at ActiveDataSourceProvider (webpack-internal:///(app-pages-browser)/./src/lib/hooks/use-active-datasource.tsx:17:11)
+    at AppShell (webpack-internal:///(app-pages-browser)/./src/components/layout/app-shell.tsx:20:11)
+    at DashboardLayout (Server)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at O (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:28:24)
+    at z (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:21:47)
+    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)
+    at SessionProvider (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/react.js:262:13)
+    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:19:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./src/components/errors/error-boundary.tsx:189:9)
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11) @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:4050/api/sql/execute:0
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[ERROR] Warning: In HTML, %s cannot be a descendant of <%s>.
+This will cause a hydration error.%s <button> button 
+    at button
+    at _c (webpack-internal:///(app-pages-browser)/./src/components/ui/button.tsx:40:11)
+    at button
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:69:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popover/dist/index.mjs:137:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Popper (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:54:13)
+    at Popover (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popover/dist/index.mjs:64:13)
+    at eval (webpack-internal:///(app-pages-browser)/./src/components/ui/multi-select.tsx:41:11)
+    at div
+    at div
+    at div
+    at div
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dismissable-layer/dist/index.mjs:37:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-focus-scope/dist/index.mjs:27:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:317:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:239:58)
+    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:27:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:211:64)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:44:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/node_modules/@radix-ui/react-slot/dist/index.mjs:20:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:38:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-portal/dist/index.mjs:22:24)
+    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:27:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at DialogPortal (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:131:13)
+    at _c1 (webpack-internal:///(app-pages-browser)/./src/components/ui/dialog.tsx:44:11)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Dialog (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-dialog/dist/index.mjs:61:13)
+    at div
+    at div
+    at FiltersPage (webpack-internal:///(app-pages-browser)/./src/app/(dashboard)/filters/page.tsx:37:95)
+    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at Suspense
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at main
+    at div
+    at div
+    at ActiveDataSourceProvider (webpack-internal:///(app-pages-browser)/./src/lib/hooks/use-active-datasource.tsx:17:11)
+    at AppShell (webpack-internal:///(app-pages-browser)/./src/components/layout/app-shell.tsx:20:11)
+    at DashboardLayout (Server)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at O (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:28:24)
+    at z (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:21:47)
+    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)
+    at SessionProvider (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/react.js:262:13)
+    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:19:11)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./src/components/errors/error-boundary.tsx:189:9)
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11) @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[LOG] [INIT] MONACO EDITOR MOUNTING... @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:68
+[LOG] [INIT] Editor options set - readOnly: false @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:76
+[LOG] [INIT] ✅ Editor mounted successfully @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:103
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[LOG] [CONTENT] Model content changed! @ webpack-internal:///(app-pages-browser)/./src/components/sql-editor/monaco-editor-wrapper.tsx:100
+[ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:4050/api/reports/35eba06a-69eb-4538-ad6e-99458e025c76/data?page=0&pageSize=20&filter_e094b4be-ee85-49b5-a00d-b81a9f991b41=1:0
+[ERROR] Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: ["report-data","35eba06a-69eb-4538-ad6e-99458e025c76",0,20,"filter_e094b4be-ee85-49b5-a00d-b81a9f991b41=1"] @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:4050/api/reports/35eba06a-69eb-4538-ad6e-99458e025c76/data?page=0&pageSize=20&filter_e094b4be-ee85-49b5-a00d-b81a9f991b41=1:0
+[ERROR] Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: ["report-data","35eba06a-69eb-4538-ad6e-99458e025c76",0,20,"filter_e094b4be-ee85-49b5-a00d-b81a9f991b41=1"] @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:32
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559
+[INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom.development.js:38559

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -87,6 +87,16 @@ export function DataTable<TData>({
     pageSize,
   });
   const [globalFilter, setGlobalFilter] = useState('');
+
+  // Sync internal pagination state when external pageIndex changes (server-side)
+  useEffect(() => {
+    if (serverSide) {
+      setInternalPagination({
+        pageIndex: externalPageIndex,
+        pageSize: internalPagination.pageSize,
+      });
+    }
+  }, [externalPageIndex, serverSide, internalPagination.pageSize]);
 
   // For server-side pagination, use the external page index from parent
   // For client-side pagination, use internal state

@@ -46,6 +46,9 @@ export async function POST(
     const connection = await getConnection(dataSource);
     let limitedSQL = query.sql_content.trim();
 
+    // Remove trailing semicolon if present
+    limitedSQL = limitedSQL.replace(/;+$/, '');
+
     // Add LIMIT clause if not present for preview
     if (!/\bLIMIT\s+\d+/i.test(limitedSQL)) {
       limitedSQL = `${limitedSQL} LIMIT 5`;
