@@ -527,7 +527,19 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => f.type === 'number' || f.type === 'integer')
+                            .filter(f => {
+                              const type = (f.type || '').toLowerCase();
+                              return type.includes('int') ||
+                                     type.includes('number') ||
+                                     type.includes('decimal') ||
+                                     type.includes('numeric') ||
+                                     type.includes('real') ||
+                                     type.includes('double') ||
+                                     type.includes('float') ||
+                                     type.includes('bigint') ||
+                                     type.includes('smallint') ||
+                                     type.includes('tinyint');
+                            })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
                                 {field.name}
@@ -589,7 +601,12 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => f.type === 'date' || f.type === 'datetime' || f.type === 'timestamp')
+                            .filter(f => {
+                              const type = (f.type || '').toLowerCase();
+                              return type.includes('date') ||
+                                     type.includes('time') ||
+                                     type.includes('timestamp');
+                            })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
                                 {field.name}
@@ -681,7 +698,28 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => f.type === 'text' || f.type === 'string' || f.type === 'varchar')
+                            .filter(f => {
+                              const type = (f.type || '').toLowerCase();
+                              // Include columns that are explicitly text types
+                              const isTextType = type.includes('text') ||
+                                               type.includes('char') ||
+                                               type.includes('varchar') ||
+                                               type.includes('string');
+                              // Include columns with unknown type (often text by default)
+                              const isUnknownType = type === '';
+                              // Exclude numeric, date, and boolean columns
+                              const isNonText = type.includes('int') ||
+                                              type.includes('number') ||
+                                              type.includes('decimal') ||
+                                              type.includes('numeric') ||
+                                              type.includes('real') ||
+                                              type.includes('double') ||
+                                              type.includes('float') ||
+                                              type.includes('date') ||
+                                              type.includes('time') ||
+                                              type.includes('bool');
+                              return (isTextType || isUnknownType) && !isNonText;
+                            })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
                                 {field.name}

@@ -39,7 +39,6 @@ export interface MultiSelectProps
   placeholder?: string;
   maxCount?: number;
   modalPopover?: boolean;
-  asChild?: boolean;
   className?: string;
 }
 
@@ -53,7 +52,6 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
       maxCount,
       variant,
       modalPopover = false,
-      asChild = false,
       className,
       ...props
     },
@@ -90,7 +88,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
         onOpenChange={setIsPopoverOpen}
         modal={modalPopover}
       >
-        <PopoverTrigger asChild={asChild}>
+        <PopoverTrigger asChild>
           <Button
             ref={ref}
             {...props}
