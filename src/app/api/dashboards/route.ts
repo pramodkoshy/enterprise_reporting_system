@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { getDb } from '@/lib/db/config';
 import { logAudit } from '@/lib/security/audit';
+import { filterAccessibleResources, canCreateResource } from '@/lib/permissions/permissions';
 import { v4 as uuidv4 } from 'uuid';
 import type { DashboardLayout } from '@/types/database';
 
@@ -20,18 +21,25 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
 
     const db = getDb();
-    const dashboards = await db<DashboardLayout>('dashboard_layouts')
-      .orderBy('created_at', 'desc')
-      .limit(pageSize)
-      .offset(page * pageSize);
+    let dashboards = await db<DashboardLayout>('dashboard_layouts')
+      .orderBy('created_at', 'desc');
 
-    const countResult = await db<DashboardLayout>('dashboard_layouts').count('* as count').first();
-    const total = Number((countResult as { count?: string })?.count || 0);
+    // Filter based on user permissions
+    dashboards = await filterAccessibleResources(
+      session.user.id,
+      dashboards,
+      'dashboard',
+      'view'
+    );
+
+    // Apply pagination after filtering
+    const paginatedDashboards = dashboards.slice(page * pageSize, (page + 1) * pageSize);
+    const total = dashboards.length;
 
     return NextResponse.json({
       success: true,
       data: {
-        items: dashboards,
+        items: paginatedDashboards,
         meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
       },
     });
@@ -51,6 +59,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
+      );
+    }
+
+    // Check if user can create dashboards
+    const canCreate = await canCreateResource(session.user.id, 'dashboard');
+    if (!canCreate) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to create dashboards' } },
+        { status: 403 }
       );
     }
 

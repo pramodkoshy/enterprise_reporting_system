@@ -40,6 +40,8 @@ import type {
   ChartType,
   ChartConfig,
   DataMapping,
+  SeriesMapping,
+  AxisMapping,
   FilterDefinition,
 } from '@/types/database';
 

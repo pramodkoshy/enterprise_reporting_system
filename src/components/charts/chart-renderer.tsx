@@ -240,17 +240,37 @@ export function ChartRenderer({
           <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis {...commonAxisProps.xAxis} />
-            <YAxis {...commonAxisProps.yAxis} />
+            {/* Left Y-axis for first series (bars) */}
+            <YAxis
+              yAxisId="left"
+              label={safeConfig.yAxis?.label
+                ? { value: safeMapping.yAxis[0]?.label || safeConfig.yAxis.label, angle: -90, position: 'insideLeft' }
+                : undefined
+              }
+              hide={safeConfig.yAxis?.hide}
+            />
+            {/* Right Y-axis for subsequent series (lines) */}
+            {safeMapping.yAxis.length > 1 && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                label={safeMapping.yAxis[1]?.label
+                  ? { value: safeMapping.yAxis[1].label, angle: 90, position: 'insideRight' }
+                  : undefined
+                }
+              />
+            )}
             {safeConfig.tooltip?.enabled !== false && <Tooltip />}
             {safeConfig.legend?.show !== false && (
               <Legend verticalAlign={safeConfig.legend?.position === 'top' ? 'top' : 'bottom'} />
             )}
             {safeMapping.yAxis?.map((field, index) => {
-              // First series as bar, rest as line
+              // First series as bar (left axis), rest as line (right axis)
               if (index === 0) {
                 return (
                   <Bar
                     key={field.field}
+                    yAxisId="left"
                     dataKey={field.field}
                     name={field.label || field.field}
                     fill={colors[index % colors.length]}
@@ -260,11 +280,13 @@ export function ChartRenderer({
               return (
                 <Line
                   key={field.field}
+                  yAxisId="right"
                   type="monotone"
                   dataKey={field.field}
                   name={field.label || field.field}
                   stroke={colors[index % colors.length]}
                   strokeWidth={2}
+                  dot={{ r: 4 }}
                 />
               );
             })}

@@ -206,13 +206,14 @@ export interface ChartDefinition {
 
 export interface ChartConfig {
   title?: {
+    show?: boolean;
     text: string;
     fontSize?: number;
     fontWeight?: string;
   };
   legend?: {
     show: boolean;
-    position: 'top' | 'bottom' | 'left' | 'right';
+    position: 'top' | 'bottom';
   };
   xAxis?: AxisConfig;
   yAxis?: AxisConfig;
@@ -221,10 +222,7 @@ export interface ChartConfig {
     enabled: boolean;
     formatter?: string;
   };
-  animation?: {
-    enabled: boolean;
-    duration?: number;
-  };
+  animation?: boolean;
 }
 
 export interface AxisConfig {
@@ -235,10 +233,21 @@ export interface AxisConfig {
 }
 
 export interface DataMapping {
-  xAxis: FieldMapping;
-  yAxis: FieldMapping[];
-  groupBy?: FieldMapping;
-  colorBy?: FieldMapping;
+  xAxis: AxisMapping;
+  yAxis: SeriesMapping[];
+  groupBy?: string;
+  colorBy?: string;
+}
+
+export interface AxisMapping {
+  field: string;
+  label?: string;
+}
+
+export interface SeriesMapping {
+  field: string;
+  label?: string;
+  color?: string;
 }
 
 export interface FieldMapping {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { getDb } from '@/lib/db/config';
 import { logAudit } from '@/lib/security/audit';
+import { hasResourceAccess, canDeleteResource } from '@/lib/permissions/permissions';
 import type { DashboardLayout, DashboardWidget } from '@/types/database';
 
 export async function GET(
@@ -18,6 +19,16 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    // Check if user has view access to this dashboard
+    const hasAccess = await hasResourceAccess(session.user.id, 'dashboard', id, 'view');
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to view this dashboard' } },
+        { status: 403 }
+      );
+    }
+
     const db = getDb();
 
     const dashboard = await db<DashboardLayout>('dashboard_layouts').where('id', id).first();
@@ -60,6 +71,15 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+
+    // Check if user has edit access to this dashboard
+    const hasAccess = await hasResourceAccess(session.user.id, 'dashboard', id, 'edit');
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to edit this dashboard' } },
+        { status: 403 }
+      );
+    }
 
     const db = getDb();
     const existing = await db<DashboardLayout>('dashboard_layouts').where('id', id).first();
@@ -115,6 +135,16 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Check if user can delete this dashboard
+    const canDelete = await canDeleteResource(session.user.id, 'dashboard', id);
+    if (!canDelete) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to delete this dashboard' } },
+        { status: 403 }
+      );
+    }
+
     const db = getDb();
 
     await db<DashboardLayout>('dashboard_layouts').where('id', id).delete();

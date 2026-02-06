@@ -45,13 +45,21 @@ import {
 import { toast } from 'sonner';
 import { formatDateTime } from '@/lib/utils';
 import type { DashboardLayout } from '@/types/database';
+import { useCanCreate, useCanEdit, useCanDelete } from '@/lib/hooks/usePermissions';
 
 export default function DashboardsPage() {
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [newDashboardName, setNewDashboardName] = useState('');
   const [newDashboardDescription, setNewDashboardDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [editingDashboard, setEditingDashboard] = useState<DashboardLayout | null>(null);
+
+  // Permission hooks
+  const { data: canCreateDashboard } = useCanCreate('dashboard');
+  const { data: canEditDashboards } = useCanEdit('dashboard');
+  const { data: canDeleteDashboards } = useCanDelete('dashboard');
 
   const { data: dashboards, isLoading } = useQuery<DashboardLayout[]>({
     queryKey: ['dashboards'],
@@ -96,6 +104,43 @@ export default function DashboardsPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingDashboard) return;
+      const res = await fetch(`/api/dashboards/${editingDashboard.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newDashboardName,
+          description: newDashboardDescription,
+          isPublic,
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Dashboard updated successfully');
+        queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+        setEditDialogOpen(false);
+        setEditingDashboard(null);
+        setNewDashboardName('');
+        setNewDashboardDescription('');
+        setIsPublic(false);
+      } else {
+        toast.error(data.error?.message || 'Failed to update dashboard');
+      }
+    },
+  });
+
+  const openEditDialog = (dashboard: DashboardLayout) => {
+    setEditingDashboard(dashboard);
+    setNewDashboardName(dashboard.name);
+    setNewDashboardDescription(dashboard.description || '');
+    setIsPublic(dashboard.is_public);
+    setEditDialogOpen(true);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/dashboards/${id}`, { method: 'DELETE' });
@@ -121,34 +166,87 @@ export default function DashboardsPage() {
           </p>
         </div>
 
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Dashboard
-            </Button>
-          </DialogTrigger>
+        {canCreateDashboard && (
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Dashboard
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Dashboard</DialogTitle>
+                <DialogDescription>
+                  Create a new dashboard to organize your reports and charts.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={newDashboardName}
+                    onChange={(e) => setNewDashboardName(e.target.value)}
+                    placeholder="My Dashboard"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={newDashboardDescription}
+                    onChange={(e) => setNewDashboardDescription(e.target.value)}
+                    placeholder="Optional description"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="public"
+                    checked={isPublic}
+                    onCheckedChange={setIsPublic}
+                  />
+                  <Label htmlFor="public">Make dashboard public</Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => createMutation.mutate()}
+                  disabled={!newDashboardName || createMutation.isPending}
+                >
+                  {createMutation.isPending ? 'Creating...' : 'Create Dashboard'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Edit Dashboard Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Dashboard</DialogTitle>
+              <DialogTitle>Edit Dashboard</DialogTitle>
               <DialogDescription>
-                Create a new dashboard to organize your reports and charts.
+                Update the dashboard details.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="edit-name">Name</Label>
                 <Input
-                  id="name"
+                  id="edit-name"
                   value={newDashboardName}
                   onChange={(e) => setNewDashboardName(e.target.value)}
                   placeholder="My Dashboard"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="edit-description">Description</Label>
                 <Input
-                  id="description"
+                  id="edit-description"
                   value={newDashboardDescription}
                   onChange={(e) => setNewDashboardDescription(e.target.value)}
                   placeholder="Optional description"
@@ -156,22 +254,22 @@ export default function DashboardsPage() {
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="public"
+                  id="edit-public"
                   checked={isPublic}
                   onCheckedChange={setIsPublic}
                 />
-                <Label htmlFor="public">Make dashboard public</Label>
+                <Label htmlFor="edit-public">Make dashboard public</Label>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={() => createMutation.mutate()}
-                disabled={!newDashboardName || createMutation.isPending}
+                onClick={() => updateMutation.mutate()}
+                disabled={!newDashboardName || updateMutation.isPending}
               >
-                {createMutation.isPending ? 'Creating...' : 'Create Dashboard'}
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -248,21 +346,23 @@ export default function DashboardsPage() {
                               </span>
                             </DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem
-                            disabled
-                            title="Dashboard editor coming soon"
-                            onClick={() => toast.info('Dashboard editor coming soon')}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Details (Coming Soon)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => deleteMutation.mutate(dashboard.id)}
-                          >
-                            <Trash className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canEditDashboards && (
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(dashboard)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Details
+                            </DropdownMenuItem>
+                          )}
+                          {canDeleteDashboards && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => deleteMutation.mutate(dashboard.id)}
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/config';
 import { getDb } from '@/lib/db/config';
 import { logAudit } from '@/lib/security/audit';
+import { hasResourceAccess, canDeleteResource } from '@/lib/permissions/permissions';
 import type { ChartDefinition } from '@/types/database';
 
 export async function GET(
@@ -18,6 +19,16 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    // Check if user has view access to this chart
+    const hasAccess = await hasResourceAccess(session.user.id, 'chart', id, 'view');
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to view this chart' } },
+        { status: 403 }
+      );
+    }
+
     const db = getDb();
     const chart = await db<ChartDefinition>('chart_definitions').where('id', id).first();
 
@@ -53,6 +64,15 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+
+    // Check if user has edit access to this chart
+    const hasAccess = await hasResourceAccess(session.user.id, 'chart', id, 'edit');
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to edit this chart' } },
+        { status: 403 }
+      );
+    }
 
     const db = getDb();
     const existing = await db<ChartDefinition>('chart_definitions').where('id', id).first();
@@ -108,6 +128,16 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Check if user can delete this chart
+    const canDelete = await canDeleteResource(session.user.id, 'chart', id);
+    if (!canDelete) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not have permission to delete this chart' } },
+        { status: 403 }
+      );
+    }
+
     const db = getDb();
 
     await db<ChartDefinition>('chart_definitions').where('id', id).delete();

@@ -28,6 +28,7 @@ import {
   Layers,
   Filter,
 } from 'lucide-react';
+import { useCanView, usePermissions } from '@/lib/hooks/usePermissions';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -35,26 +36,63 @@ interface SidebarProps {
 }
 
 const mainNavItems = [
-  { href: '/', label: 'Dashboard', icon: Home },
-  { href: '/sql-editor', label: 'SQL Editor', icon: Terminal },
-  { href: '/queries', label: 'Saved Queries', icon: Database },
-  { href: '/reports', label: 'Reports', icon: FileText },
-  { href: '/charts', label: 'Charts', icon: BarChart3 },
-  { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard },
-  { href: '/filters', label: 'Filters', icon: Filter },
-  { href: '/jobs', label: 'Jobs', icon: Play },
+  { href: '/', label: 'Dashboard', icon: Home, permissionKey: null },
+  { href: '/sql-editor', label: 'SQL Editor', icon: Terminal, permissionKey: 'query' as const },
+  { href: '/queries', label: 'Saved Queries', icon: Database, permissionKey: 'query' as const },
+  { href: '/reports', label: 'Reports', icon: FileText, permissionKey: 'report' as const },
+  { href: '/charts', label: 'Charts', icon: BarChart3, permissionKey: 'chart' as const },
+  { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard, permissionKey: 'dashboard' as const },
+  { href: '/filters', label: 'Filters', icon: Filter, permissionKey: 'filter' as const },
+  { href: '/jobs', label: 'Jobs', icon: Play, permissionKey: 'job' as const },
 ];
 
 const adminNavItems = [
-  { href: '/data-sources', label: 'Data Sources', icon: Database },
-  { href: '/bull-board', label: 'Queue Management', icon: Layers },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/roles', label: 'Roles', icon: Shield },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/data-sources', label: 'Data Sources', icon: Database, permissionKey: 'data_source' as const },
+  { href: '/bull-board', label: 'Queue Management', icon: Layers, permissionKey: 'queue' as const },
+  { href: '/admin/users', label: 'Users', icon: Users, permissionKey: 'user' as const },
+  { href: '/admin/roles', label: 'Roles', icon: Shield, permissionKey: 'role' as const },
+  { href: '/admin/permissions', label: 'Permissions', icon: Shield, permissionKey: 'user' as const },
+  { href: '/settings', label: 'Settings', icon: Settings, permissionKey: null },
 ];
 
 export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const { data: permissions } = usePermissions();
+  const { data: canViewQuery } = useCanView('query');
+  const { data: canViewReport } = useCanView('report');
+  const { data: canViewChart } = useCanView('chart');
+  const { data: canViewDashboard } = useCanView('dashboard');
+  const { data: canViewFilter } = useCanView('filter');
+  const { data: canViewJob } = useCanView('job');
+  const { data: canViewDataSource } = useCanView('data_source');
+  const { data: canViewQueue } = useCanView('queue');
+  const { data: canViewUser } = useCanView('user');
+  const { data: canViewRole } = useCanView('role');
+
+  // Derive isAdmin directly from permissions to avoid duplicate queries
+  const isAdminUser = permissions?.isAdmin ?? false;
+
+  const canView = (permissionKey: string | null) => {
+    if (permissionKey === null) return true;
+    // Admin users can see everything
+    if (isAdminUser) return true;
+    // When permissions are still loading, be conservative and show items
+    // (they'll be filtered once permissions load)
+    if (permissions === undefined) return true;
+    switch (permissionKey) {
+      case 'query': return canViewQuery ?? false;
+      case 'report': return canViewReport ?? false;
+      case 'chart': return canViewChart ?? false;
+      case 'dashboard': return canViewDashboard ?? false;
+      case 'filter': return canViewFilter ?? false;
+      case 'job': return canViewJob ?? false;
+      case 'data_source': return canViewDataSource ?? false;
+      case 'queue': return canViewQueue ?? false;
+      case 'user': return canViewUser ?? false;
+      case 'role': return canViewRole ?? false;
+      default: return true;
+    }
+  };
 
   const NavItem = ({
     href,
@@ -127,7 +165,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 </h2>
               )}
               <nav className="space-y-1">
-                {mainNavItems.map((item) => (
+                {mainNavItems.filter((item) => canView(item.permissionKey)).map((item) => (
                   <NavItem key={item.href} {...item} />
                 ))}
               </nav>
@@ -142,7 +180,7 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                 </h2>
               )}
               <nav className="space-y-1">
-                {adminNavItems.map((item) => (
+                {adminNavItems.filter((item) => canView(item.permissionKey)).map((item) => (
                   <NavItem key={item.href} {...item} />
                 ))}
               </nav>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -27,14 +27,18 @@ export function ConfigureWidgetDialog({ open, onOpenChange, widget }: ConfigureW
   const [title, setTitle] = useState('');
 
   // Initialize form when widget changes
-  if (widget && open && title === '') {
-    try {
-      const config = widget.widget_config ? JSON.parse(widget.widget_config) : {};
-      setTitle(config.title || '');
-    } catch {
+  useEffect(() => {
+    if (widget && open) {
+      try {
+        const config = widget.widget_config ? JSON.parse(widget.widget_config) : {};
+        setTitle(config.title || '');
+      } catch {
+        setTitle('');
+      }
+    } else if (!open) {
       setTitle('');
     }
-  }
+  }, [widget, open]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ dashboardId, widgetId, updates }: {

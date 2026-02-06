@@ -52,6 +52,7 @@ import {
 import { toast } from 'sonner';
 import { formatDateTime } from '@/lib/utils';
 import type { ChartDefinition, SavedQuery, ChartType } from '@/types/database';
+import { useCanCreate, useCanEdit, useCanDelete } from '@/lib/hooks/usePermissions';
 
 export default function ChartsPage() {
   const queryClient = useQueryClient();
@@ -59,6 +60,11 @@ export default function ChartsPage() {
   const [newChartName, setNewChartName] = useState('');
   const [newChartType, setNewChartType] = useState<ChartType>('bar');
   const [selectedQueryId, setSelectedQueryId] = useState('');
+
+  // Permission hooks
+  const { data: canCreateChart } = useCanCreate('chart');
+  const { data: canEditCharts } = useCanEdit('chart');
+  const { data: canDeleteCharts } = useCanDelete('chart');
 
   const chartTypeIcons = useMemo<Record<ChartType, React.ReactNode>>(() => ({
     bar: <BarChart3 className="h-4 w-4" />,
@@ -144,81 +150,85 @@ export default function ChartsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Link href="/charts/editor/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Open Chart Editor
-            </Button>
-          </Link>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
+          {canCreateChart && (
+            <Link href="/charts/editor/new">
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Quick Create
+                Open Chart Editor
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Chart</DialogTitle>
-                <DialogDescription>
-                  Create a new chart visualization from a saved query.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={newChartName}
-                    onChange={(e) => setNewChartName(e.target.value)}
-                    placeholder="My Chart"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Chart Type</Label>
-                  <Select value={newChartType} onValueChange={(v) => setNewChartType(v as ChartType)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bar">Bar Chart</SelectItem>
-                      <SelectItem value="line">Line Chart</SelectItem>
-                      <SelectItem value="area">Area Chart</SelectItem>
-                      <SelectItem value="pie">Pie Chart</SelectItem>
-                      <SelectItem value="scatter">Scatter Plot</SelectItem>
-                      <SelectItem value="composed">Composed Chart</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="query">Data Source Query</Label>
-                  <Select value={selectedQueryId} onValueChange={setSelectedQueryId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a query" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {queries?.map((query) => (
-                        <SelectItem key={query.id} value={query.id}>
-                          {query.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancel
+            </Link>
+          )}
+          {canCreateChart && (
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Quick Create
                 </Button>
-                <Button
-                  onClick={() => createMutation.mutate()}
-                  disabled={!newChartName || createMutation.isPending}
-                >
-                  {createMutation.isPending ? 'Creating...' : 'Create Chart'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Chart</DialogTitle>
+                  <DialogDescription>
+                    Create a new chart visualization from a saved query.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={newChartName}
+                      onChange={(e) => setNewChartName(e.target.value)}
+                      placeholder="My Chart"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Chart Type</Label>
+                    <Select value={newChartType} onValueChange={(v) => setNewChartType(v as ChartType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bar">Bar Chart</SelectItem>
+                        <SelectItem value="line">Line Chart</SelectItem>
+                        <SelectItem value="area">Area Chart</SelectItem>
+                        <SelectItem value="pie">Pie Chart</SelectItem>
+                        <SelectItem value="scatter">Scatter Plot</SelectItem>
+                        <SelectItem value="composed">Composed Chart</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="query">Data Source Query</Label>
+                    <Select value={selectedQueryId} onValueChange={setSelectedQueryId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a query" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {queries?.map((query) => (
+                          <SelectItem key={query.id} value={query.id}>
+                            {query.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => createMutation.mutate()}
+                    disabled={!newChartName || createMutation.isPending}
+                  >
+                    {createMutation.isPending ? 'Creating...' : 'Create Chart'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -283,19 +293,23 @@ export default function ChartsPage() {
                               View
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/charts/editor/${chart.id}`}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => deleteMutation.mutate(chart.id)}
-                          >
-                            <Trash className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {canEditCharts && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/charts/editor/${chart.id}`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
+                          {canDeleteCharts && (
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => deleteMutation.mutate(chart.id)}
+                            >
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
