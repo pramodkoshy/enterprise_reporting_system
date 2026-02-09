@@ -3,7 +3,6 @@
  * Provides configuration for Bull Board UI (custom implementation)
  */
 
-import { getQueue } from './queue-manager';
 import { BULL_BOARD_CONFIG } from './config';
 
 /**

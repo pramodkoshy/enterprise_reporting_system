@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Knex } from 'knex';
 import type { SchemaInfo, TableInfo, ViewInfo, ColumnSchema, ForeignKeyInfo, IndexInfo } from '@/types/api';
 
@@ -37,6 +38,7 @@ async function introspectSchemaInternal(connection: Knex, dialect: string, addLo
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function introspectPostgres(connection: Knex, addLog: (msg: string) => void): Promise<SchemaInfo> {
   // Get tables
   const tables = await connection.raw(`

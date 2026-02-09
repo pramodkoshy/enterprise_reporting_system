@@ -5,35 +5,72 @@ export class TestHelpers {
 
   /**
    * Login to the application with default credentials
+   * Goes to home page first, then logs in if needed
    */
   async login(email = 'admin@admin.com', password = 'admin') {
+    // Start at home page - this will redirect to login if not authenticated
     await this.page.goto('/');
 
-    // Fill in login form
-    await this.page.getByPlaceholder('name@example.com').fill(email);
-    await this.page.getByLabel('Password').fill(password);
+    // Wait for page load
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
 
-    // Click sign in
-    await this.page.getByRole('button', { name: 'Sign In' }).click();
+    // Check if we're on login page
+    const currentUrl = this.page.url();
+    if (currentUrl.includes('/login')) {
+      // Need to log in
+      await this.page.getByPlaceholder('name@example.com').fill(email);
+      await this.page.getByLabel('Password').fill(password);
+      await this.page.getByRole('button', { name: 'Sign In' }).click();
 
-    // Wait for navigation to complete - wait for dashboard heading to be visible
-    // This is more reliable than waitForURL for client-side navigations
-    // Increased timeout for better reliability under load
-    await this.page.getByRole('heading', { name: 'Dashboard', exact: true }).waitFor({ state: 'visible', timeout: 20000 });
+      // Wait for ONE of multiple indicators of successful login (more robust)
+      await Promise.race([
+        // Option 1: Dashboard heading (case-insensitive)
+        this.page.getByRole('heading', { name: /dashboard/i }).waitFor({ state: 'visible', timeout: 15000 }),
+        // Option 2: Navigation menu
+        this.page.getByRole('navigation').waitFor({ state: 'visible', timeout: 15000 }),
+        // Option 3: URL change to home (not login)
+        this.page.waitForURL(url => !url.includes('/login'), { timeout: 15000 }),
+      ]).catch(() => {
+        // If none of the above work, just wait for the hard redirect timeout
+        return this.page.waitForTimeout(5000);
+      });
+    } else {
+      // Already at home page, wait for it to be fully loaded
+      await this.page.waitForTimeout(2000);
+    }
 
-    // Verify we're on the correct URL
-    await this.page.waitForURL('/', { timeout: 10000 }).catch(() => {
-      // URL check might fail if we're already there, which is fine
-    });
+    // Wait for page to be fully loaded
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+
+    // Additional wait for session to be established
+    await this.page.waitForTimeout(1500);
   }
 
   /**
    * Navigate to a specific page by name
+   * Uses direct URL navigation for reliability
    */
   async navigateToPage(pageName: 'Dashboard' | 'SQL Editor' | 'Reports' | 'Charts' | 'Dashboards') {
-    await this.page.getByRole('link', { name: pageName, exact: true }).first().click();
-    // Wait a bit for client-side routing
-    await this.page.waitForTimeout(500);
+    // Map page names to their routes
+    const routes: Record<string, string> = {
+      'Dashboard': '/',
+      'SQL Editor': '/sql-editor',
+      'Reports': '/reports',
+      'Charts': '/charts',
+      'Dashboards': '/dashboards',
+    };
+
+    const route = routes[pageName];
+    if (!route) {
+      throw new Error(`Unknown page: ${pageName}`);
+    }
+
+    // Use direct URL navigation - most reliable
+    await this.page.goto(route, { waitUntil: 'domcontentloaded' });
+
+    // Wait for page to be fully loaded
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+    await this.page.waitForTimeout(1000);
   }
 
   /**

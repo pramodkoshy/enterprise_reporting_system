@@ -101,16 +101,26 @@ async function createJobDefinition(body: any, session: any) {
   // If active, schedule the job in BullMQ
   if (is_active) {
     try {
-      await addScheduledJob(
-        {
-          type: 'data:export',
-          queryId: target_id,
-          userId: session.user.id,
-          format: parameters?.format || 'csv',
-        } as any,
-        schedule_cron,
-        { jobId }
-      );
+      const jobData: any = {
+        type: job_type,
+        userId: session.user.id,
+      };
+
+      // Add job type specific fields
+      if (job_type === 'email:batch') {
+        jobData.queryId = target_id;
+        jobData.emailTemplateId = parameters?.emailTemplateId;
+        jobData.recipientQueryId = parameters?.recipientQueryId;
+        jobData.recipientEmailColumn = parameters?.recipientEmailColumn;
+        jobData.format = parameters?.format || 'csv';
+        jobData.reportName = parameters?.reportName;
+      } else {
+        // data:export
+        jobData.queryId = target_id;
+        jobData.format = parameters?.format || 'csv';
+      }
+
+      await addScheduledJob(jobData, schedule_cron, { jobId });
     } catch (error) {
       console.error('Error scheduling job in BullMQ:', error);
       // Still return success, the DB record was created

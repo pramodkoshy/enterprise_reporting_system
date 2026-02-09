@@ -59,3 +59,10 @@ temp/
 
 # Job outputs
 job-outputs/
+
+# Docker
+.env.docker.production
+.dockerignore
+
+# Hostinger VPS Data (bind mounts - don't commit)
+/srv/

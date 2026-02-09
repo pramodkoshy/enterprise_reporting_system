@@ -1,5 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
 
+test.describe.configure({ mode: 'serial' });
+
+// Clear storage for all tests in this file
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test.describe('Authentication', () => {
   test('login page loads successfully', async ({ page }) => {
     await page.goto('/');

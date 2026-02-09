@@ -51,7 +51,7 @@ import { formatDateTime } from '@/lib/utils';
 import { CronBuilder } from '@/components/jobs/cron-builder';
 import type { JobDefinition, JobExecution, SavedQuery } from '@/types/database';
 
-const _statusColors: Record<string, string> = {
+const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500',
   running: 'bg-blue-500',
   completed: 'bg-green-500',
@@ -69,23 +69,6 @@ const statusIcons: Record<string, React.ReactNode> = {
 
 export default function JobsPage() {
   const queryClient = useQueryClient();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editJob, setEditJob] = useState<JobDefinition | null>(null);
-  const [jobName, setJobName] = useState('');
-  const [selectedQuery, setSelectedQuery] = useState('');
-  const [cronExpression, setCronExpression] = useState('0 0 * * *');
-  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx' | 'pdf'>('csv');
-  const [notifyOnComplete, setNotifyOnComplete] = useState(true);
-  const [emailReport, setEmailReport] = useState(true);
-  const [emailRecipients, setEmailRecipients] = useState('');
-  const [isActive, setIsActive] = useState(true);
-
-  // Batch email job configuration
-  const [jobType, setJobType] = useState<'report' | 'batch-email'>('report');
-  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState('');
-  const [selectedRecipientQuery, setSelectedRecipientQuery] = useState('');
-  const [recipientEmailColumn, setRecipientEmailColumn] = useState('');
-  const [recipientQueryColumns, setRecipientQueryColumns] = useState<string[]>([]);
 
   const { data: queueStatus, refetch: refetchStatus } = useQuery({
     queryKey: ['queue-status'],
@@ -94,50 +77,16 @@ export default function JobsPage() {
       const data = await res.json();
       return data.data;
     },
-    refetchInterval: 5000,
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  const { data: jobDefinitions, isLoading: isLoadingDefinitions, refetch: refetchJobs } = useQuery<JobDefinition[]>({
+  const { data: jobDefinitions, isLoading: isLoadingDefinitions } = useQuery<JobDefinition[]>({
     queryKey: ['job-definitions'],
     queryFn: async () => {
       const res = await fetch('/api/jobs');
       const data = await res.json();
       return data.data?.items || [];
     },
-  });
-
-  const { data: queries } = useQuery<SavedQuery[]>({
-    queryKey: ['queries'],
-    queryFn: async () => {
-      const res = await fetch('/api/queries?pageSize=100');
-      const data = await res.json();
-      return data.data?.items || [];
-    },
-  });
-
-  const { data: emailTemplates } = useQuery({
-    queryKey: ['email-templates'],
-    queryFn: async () => {
-      const res = await fetch('/api/email-templates');
-      const data = await res.json();
-      return data.data?.items || [];
-    },
-  });
-
-  // Fetch recipient query columns when selected
-  useQuery({
-    queryKey: ['query-columns', selectedRecipientQuery],
-    queryFn: async () => {
-      if (!selectedRecipientQuery) return [];
-      const res = await fetch(`/api/queries/${selectedRecipientQuery}/execute`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      const columns = data.data?.columns || [];
-      setRecipientQueryColumns(columns);
-      return columns;
-    },
-    enabled: !!selectedRecipientQuery && jobType === 'batch-email',
   });
 
   const { data: recentExecutions, isLoading: isLoadingExecutions } = useQuery<JobExecution[]>({
@@ -148,116 +97,6 @@ export default function JobsPage() {
       return data.data?.items || [];
     },
     refetchInterval: 10000,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const isBatchEmail = jobType === 'batch-email';
-
-      const body: Record<string, any> = {
-        name: jobName,
-        job_type: isBatchEmail ? 'email:batch' : 'data:export',
-        target_id: selectedQuery,
-        schedule_cron: cronExpression,
-        is_active: isActive,
-      };
-
-      if (isBatchEmail) {
-        // Batch email job configuration
-        body.parameters = JSON.stringify({
-          format: exportFormat,
-          emailTemplateId: selectedEmailTemplate,
-          recipientQueryId: selectedRecipientQuery,
-          recipientEmailColumn,
-          reportName: jobName,
-        });
-      } else {
-        // Regular report export job
-        body.parameters = JSON.stringify({ format: exportFormat });
-        body.notification_config = JSON.stringify({
-          enabled: notifyOnComplete,
-          emailReport,
-          emailRecipients: emailRecipients.split(',').map((e) => e.trim()).filter(Boolean),
-        });
-      }
-
-      const res = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Job created successfully');
-        setCreateDialogOpen(false);
-        resetForm();
-        refetchJobs();
-      } else {
-        toast.error(data.error?.message || 'Failed to create job');
-      }
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/jobs/${editJob!.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: jobName,
-          schedule_cron: cronExpression,
-          parameters: JSON.stringify({ format: exportFormat }),
-          notification_config: JSON.stringify({
-            enabled: notifyOnComplete,
-            emailReport,
-            emailRecipients: emailRecipients.split(',').map(e => e.trim()).filter(Boolean),
-          }),
-          is_active: isActive,
-        }),
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Job updated successfully');
-        setEditJob(null);
-        resetForm();
-        refetchJobs();
-      } else {
-        toast.error(data.error?.message || 'Failed to update job');
-      }
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const res = await fetch(`/api/jobs/definitions/${jobId}`, { method: 'DELETE' });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Job deleted');
-        refetchJobs();
-      } else {
-        toast.error(data.error?.message || 'Failed to delete job');
-      }
-    },
-  });
-
-  const runJobMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const res = await fetch(`/api/jobs/${jobId}/run`, { method: 'POST' });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast.success('Job started');
-      } else {
-        toast.error(data.error?.message || 'Failed to start job');
-      }
-    },
   });
 
   const cancelMutation = useMutation({
@@ -275,302 +114,20 @@ export default function JobsPage() {
     },
   });
 
-  const resetForm = () => {
-    setJobName('');
-    setJobDescription('');
-    setSelectedQuery('');
-    setCronExpression('0 0 * * *');
-    setExportFormat('csv');
-    setNotifyOnComplete(true);
-    setEmailReport(true);
-    setEmailRecipients('');
-    setIsActive(true);
-    setJobType('report');
-    setSelectedEmailTemplate('');
-    setSelectedRecipientQuery('');
-    setRecipientEmailColumn('');
-    setRecipientQueryColumns([]);
-  };
-
-  const handleEdit = (job: JobDefinition) => {
-    setEditJob(job);
-    setJobName(job.name);
-    setSelectedQuery(job.target_id);
-    setCronExpression(job.schedule_cron || '0 0 * * *');
-    try {
-      const params = JSON.parse(job.parameters || '{}');
-      setExportFormat(params.format || 'csv');
-    } catch {
-      setExportFormat('csv');
-    }
-    try {
-      const notificationConfig = JSON.parse(job.notification_config || '{}');
-      setNotifyOnComplete(notificationConfig.enabled !== false);
-      setEmailReport(notificationConfig.emailReport !== false);
-      setEmailRecipients(Array.isArray(notificationConfig.emailRecipients)
-        ? notificationConfig.emailRecipients.join(', ')
-        : ''
-      );
-    } catch {
-      setNotifyOnComplete(true);
-      setEmailReport(true);
-      setEmailRecipients('');
-    }
-    setIsActive(job.is_active);
-  };
-
-  const handleSave = () => {
-    if (editJob) {
-      updateMutation.mutate();
-    } else {
-      createMutation.mutate();
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Background Jobs</h1>
           <p className="text-muted-foreground">
-            Schedule and manage background job processing
+            Monitor and manage background job processing
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <Dialog open={createDialogOpen || editJob !== null} onOpenChange={(open) => {
-            if (!open) {
-              setCreateDialogOpen(false);
-              setEditJob(null);
-              resetForm();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Job
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editJob ? 'Edit Job' : 'Create Scheduled Job'}</DialogTitle>
-                <DialogDescription>
-                  Configure a scheduled job to execute SQL queries and export results
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="jobName">Job Name *</Label>
-                  <Input
-                    id="jobName"
-                    value={jobName}
-                    onChange={(e) => setJobName(e.target.value)}
-                    placeholder="Daily Report Export"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="jobType">Job Type *</Label>
-                  <Select value={jobType} onValueChange={(v: any) => setJobType(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="report">Report Export</SelectItem>
-                      <SelectItem value="batch-email">Batch Email with Report</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    {jobType === 'report'
-                      ? 'Generate and optionally email report exports'
-                      : 'Generate report and send personalized emails to multiple recipients'}
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="query">
-                    {jobType === 'batch-email' ? 'Report Data Query *' : 'Saved Query *'}
-                  </Label>
-                  <Select value={selectedQuery} onValueChange={setSelectedQuery}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a query to run" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {queries?.map((query) => (
-                        <SelectItem key={query.id} value={query.id}>
-                          {query.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="format">Export Format</Label>
-                  <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="csv">CSV</SelectItem>
-                      <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
-                      <SelectItem value="pdf">PDF</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {jobType === 'batch-email' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="emailTemplate">Email Template *</Label>
-                      <Select value={selectedEmailTemplate} onValueChange={setSelectedEmailTemplate}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select email template" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {emailTemplates?.map((template: any) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              {template.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Template used for personalized email body
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="recipientQuery">Recipient Query *</Label>
-                      <Select value={selectedRecipientQuery} onValueChange={setSelectedRecipientQuery}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select query to get recipients" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {queries?.map((query) => (
-                            <SelectItem key={query.id} value={query.id}>
-                              {query.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Query that returns list of recipients (e.g., customers with email addresses)
-                      </p>
-                    </div>
-
-                    {selectedRecipientQuery && (
-                      <div className="space-y-2">
-                        <Label htmlFor="emailColumn">Recipient Email Column *</Label>
-                        <Select value={recipientEmailColumn} onValueChange={setRecipientEmailColumn}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select column containing email addresses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {recipientQueryColumns.map((col) => (
-                              <SelectItem key={col} value={col}>
-                                {col}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Column from recipient query containing email addresses
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <CronBuilder value={cronExpression} onChange={setCronExpression} />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="active">Active</Label>
-                    <p className="text-xs text-muted-foreground">Enable or disable this job</p>
-                  </div>
-                  <Switch
-                    id="active"
-                    checked={isActive}
-                    onCheckedChange={setIsActive}
-                  />
-                </div>
-
-                {jobType === 'report' && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="notify">Notify on Completion</Label>
-                        <p className="text-xs text-muted-foreground">Get notified when job finishes</p>
-                      </div>
-                      <Switch
-                        id="notify"
-                        checked={notifyOnComplete}
-                        onCheckedChange={setNotifyOnComplete}
-                      />
-                    </div>
-
-                    {notifyOnComplete && (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="emailReport">Email Report as Attachment</Label>
-                            <p className="text-xs text-muted-foreground">Attach exported report to notification email</p>
-                          </div>
-                          <Switch
-                            id="emailReport"
-                            checked={emailReport}
-                            onCheckedChange={setEmailReport}
-                          />
-                        </div>
-
-                        {emailReport && (
-                          <div className="space-y-2">
-                            <Label htmlFor="emailRecipients">Email Recipients</Label>
-                            <Input
-                              id="emailRecipients"
-                              value={emailRecipients}
-                              onChange={(e) => setEmailRecipients(e.target.value)}
-                              placeholder="user1@example.com, user2@example.com"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Comma-separated list of email addresses
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCreateDialogOpen(false);
-                    setEditJob(null);
-                    resetForm();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={!jobName || !selectedQuery || createMutation.isPending || updateMutation.isPending}
-                >
-                  {createMutation.isPending || updateMutation.isPending ? 'Saving...' : (editJob ? 'Update' : 'Create')}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Button variant="outline" onClick={() => refetchStatus()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
+        <Button variant="outline" onClick={() => refetchStatus()}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Queue Status */}
@@ -626,100 +183,11 @@ export default function JobsPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="scheduled">
+      <Tabs defaultValue="executions">
         <TabsList>
-          <TabsTrigger value="scheduled">Scheduled Jobs</TabsTrigger>
           <TabsTrigger value="executions">Recent Executions</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled Jobs</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="scheduled">
-          <Card>
-            <CardHeader>
-              <CardTitle>Scheduled Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingDefinitions ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading...
-                </div>
-              ) : jobDefinitions?.filter((j) => j.schedule_cron).length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No scheduled jobs configured. Create your first job to get started.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Query</TableHead>
-                      <TableHead>Schedule</TableHead>
-                      <TableHead>Format</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobDefinitions
-                      ?.filter((j) => j.schedule_cron)
-                      .map((job) => {
-                        const query = queries?.find((q) => q.id === job.target_id);
-                        const params = JSON.parse(job.parameters || '{}');
-                        return (
-                          <TableRow key={job.id}>
-                            <TableCell className="font-medium">{job.name}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {query?.name || 'Unknown'}
-                            </TableCell>
-                            <TableCell className="font-mono text-sm">
-                              {job.schedule_cron}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{params.format?.toUpperCase()}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={job.is_active ? 'default' : 'secondary'}>
-                                {job.is_active ? 'Active' : 'Paused'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => runJobMutation.mutate(job.id)}
-                                  >
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Run Now
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleEdit(job)}
-                                  >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => deleteMutation.mutate(job.id)}
-                                    className="text-destructive"
-                                  >
-                                    <Trash className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="executions">
           <Card>
@@ -813,6 +281,64 @@ export default function JobsPage() {
                         </TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="scheduled">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scheduled Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDefinitions ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading...
+                </div>
+              ) : jobDefinitions?.filter((j) => j.schedule_cron).length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No scheduled jobs configured
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Schedule</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobDefinitions
+                      ?.filter((j) => j.schedule_cron)
+                      .map((job) => (
+                        <TableRow key={job.id}>
+                          <TableCell className="font-medium">{job.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{job.job_type}</Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {job.schedule_cron}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={job.is_active ? 'default' : 'secondary'}
+                            >
+                              {job.is_active ? 'Active' : 'Paused'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               )}

@@ -96,7 +96,7 @@ export function validateSQL(
 }
 
 function checkSecurityIssues(sql: string, warnings: SQLWarning[]): void {
-  const sqlUpper = sql.toUpperCase();
+  // const sqlUpper = sql.toUpperCase(); // Reserved for future security checks
 
   // Check for DROP statements
   if (/\bDROP\s+(TABLE|DATABASE|INDEX|VIEW)\b/i.test(sql)) {

@@ -100,7 +100,7 @@ export default function PermissionsManagementPage() {
   });
 
   // Fetch resources based on type
-  const { data: resources } = useQuery<Resource[]>({
+  const { data: resources = [], isLoading: isLoadingResources } = useQuery<Resource[]>({
     queryKey: ['resources', selectedResourceType],
     queryFn: async () => {
       const endpoint = selectedResourceType === 'data_source'
@@ -121,9 +121,19 @@ export default function PermissionsManagementPage() {
 
       if (!endpoint) return [];
 
-      const res = await fetch(endpoint);
-      const data = await res.json();
-      return data.data || [];
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        // Handle different response formats:
+        // - Paginated: { data: { items: [...] } }
+        // - Simple: { data: [...] }
+        // - Direct: [...]
+        const items = data?.data?.items || data?.data || data?.items || data;
+        return Array.isArray(items) ? items : [];
+      } catch (error) {
+        console.error('Failed to fetch resources:', error);
+        return [];
+      }
     },
     enabled: !!selectedResourceType,
   });
@@ -189,7 +199,8 @@ export default function PermissionsManagementPage() {
   };
 
   const getResourceName = (type: ResourceType, id: string) => {
-    const resource = resources?.find((r) => r.id === id);
+    if (!Array.isArray(resources)) return id;
+    const resource = resources.find((r) => r.id === id);
     return resource?.name || id;
   };
 
@@ -258,7 +269,8 @@ export default function PermissionsManagementPage() {
                     <TableCell>
                       {(() => {
                         // Try to find the resource name from fetched resources
-                        const typeResources = resources?.filter(
+                        if (!Array.isArray(resources)) return permission.resource_id;
+                        const typeResources = resources.filter(
                           (r) => r.id === permission.resource_id
                         );
                         if (typeResources && typeResources.length > 0) {
@@ -328,19 +340,26 @@ export default function PermissionsManagementPage() {
               <Select
                 value={selectedResourceId}
                 onValueChange={setSelectedResourceId}
-                disabled={!resources || resources.length === 0}
+                disabled={isLoadingResources || !Array.isArray(resources) || resources.length === 0}
               >
                 <SelectTrigger id="resource">
-                  <SelectValue placeholder="Select resource" />
+                  <SelectValue placeholder={
+                    isLoadingResources ? 'Loading resources...' : 'Select resource'
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {resources?.map((resource) => (
+                  {Array.isArray(resources) && resources.map((resource) => (
                     <SelectItem key={resource.id} value={resource.id}>
                       {resource.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!isLoadingResources && Array.isArray(resources) && resources.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No resources available for this type
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
