@@ -22,9 +22,16 @@ COPY . .
 RUN npm ci && \
     npm cache clean --force
 
+# Compile TypeScript migrations to JavaScript
+RUN npm run build:migrations
+
+# Compile TypeScript seeds to JavaScript
+RUN npm run build:seeds
+
 # Build Next.js application
-# Disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
+# Disable telemetry and font optimization during build (font fetch may fail in Docker)
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PRIVATE_SKIP_FONT_OPTIMIZATION=1
 RUN npm run build
 
 # Production stage
@@ -48,6 +55,10 @@ COPY --from=builder /app/package.json ./package.json
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy migrations and seeds directories for database setup
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrations /app/migrations
+COPY --from=builder --chown=nextjs:nodejs /app/dist/seeds /app/seeds
 
 # Create required directories with correct permissions
 RUN mkdir -p /app/data /app/job-outputs /app/uploads /app/logs && \

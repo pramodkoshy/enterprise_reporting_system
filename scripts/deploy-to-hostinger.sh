@@ -70,10 +70,9 @@ ssh ${VPS_USER}@${VPS_HOST} << EOF
 set -e
 
 echo "   Creating data directories if needed..."
-mkdir -p ${VPS_PATH}/{postgres/data,redis/data,app/{data,job-outputs,uploads,logs}}
+mkdir -p ${VPS_PATH}/{redis/data,app/{data,job-outputs,uploads,logs}}
 
 echo "   Fixing permissions..."
-chown -R 999:999 ${VPS_PATH}/postgres 2>/dev/null || true
 chown -R 999:999 ${VPS_PATH}/redis 2>/dev/null || true
 chown -R 1001:1000 ${VPS_PATH}/app 2>/dev/null || true
 
@@ -122,7 +121,9 @@ echo ""
 echo "✅ Deployment successful!"
 echo ""
 echo "🔗 Next steps:"
-echo "   1. Initialize database: curl -X POST http://${VPS_HOST}:3000/api/setup"
-echo "   2. Access application: http://${VPS_HOST}:3000"
-echo "   3. View logs: ssh ${VPS_USER}@${VPS_HOST} 'cd ${VPS_PATH} && docker compose logs -f'"
+echo "   1. Initialize database: ssh ${VPS_USER}@${VPS_HOST} 'curl -X POST http://localhost:3000/api/setup'"
+echo "   2. Seed database with admin user: ssh ${VPS_USER}@${VPS_HOST} 'curl -X POST http://localhost:3000/api/seed'"
+echo "   3. Access application: http://${VPS_HOST}:3000"
+echo "   4. Default credentials: admin@admin.com / admin"
+echo "   5. View logs: ssh ${VPS_USER}@${VPS_HOST} 'cd ${VPS_PATH} && docker compose logs -f'"
 echo ""

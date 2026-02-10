@@ -3,32 +3,9 @@ version: "3.9"
 # Enterprise Reporting System - Docker Compose for Hostinger VPS
 # This setup uses bind mounts for data persistence (Hostinger best practice)
 # All data is stored on the VPS filesystem at /srv/enterprise-reporting-system/
+# SQLite-only configuration (no PostgreSQL)
 
 services:
-  # PostgreSQL Database (Primary Database)
-  # Replaces SQLite for production - better concurrency and performance
-  postgres:
-    image: postgres:16-alpine
-    container_name: ers-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ersuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-enterprise_reporting}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      # Bind mount: VPS path → Container path
-      - ${DATA_PATH:-/srv/enterprise-reporting-system}/postgres/data:/var/lib/postgresql/data
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ersuser} -d ${POSTGRES_DB:-enterprise_reporting}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - ers-network
-
   # Redis (for BullMQ job queue)
   redis:
     image: redis:7-alpine
@@ -65,10 +42,7 @@ services:
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_URL: ${AUTH_URL}
 
-      # PostgreSQL Database (Production)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ersuser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-enterprise_reporting}
-
-      # SQLite Backup (Configuration Database)
+      # SQLite Configuration Database
       DATABASE_PATH: /app/data/config.sqlite
 
       # Redis (Job Queue)
@@ -93,17 +67,15 @@ services:
       ENABLE_VIRTUAL_SCROLLING: ${ENABLE_VIRTUAL_SCROLLING:-true}
     volumes:
       # Bind mounts: VPS paths → Container paths
-      # Application data (SQLite, logs, etc.)
+      # Configuration database (SQLite)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/data:/app/data
       # Job outputs (exported reports, charts, etc.)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/job-outputs:/app/job-outputs
-      # Uploads (user uploaded files)
+      # Uploads (user uploaded files, test databases)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/uploads:/app/uploads
       # Logs
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/logs:/app/logs
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:

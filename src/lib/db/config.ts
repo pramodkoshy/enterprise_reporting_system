@@ -1,5 +1,7 @@
 import knex, { Knex } from 'knex';
 import knexConfig from './knexfile';
+import path from 'path';
+import fs from 'fs';
 
 const environment = process.env.NODE_ENV || 'development';
 const config = knexConfig[environment];
@@ -22,6 +24,32 @@ export async function closeDb(): Promise<void> {
   if (db) {
     await db.destroy();
     db = null;
+  }
+}
+
+// Run migrations directly - this works in production builds
+export async function runMigrations(knexInstance: Knex): Promise<void> {
+  const migrationsDir = path.join(__dirname, 'migrations');
+
+  // Read all migration files
+  const migrationFiles = fs.readdirSync(migrationsDir)
+    .filter(f => f.endsWith('.ts') || f.endsWith('.js'))
+    .sort();
+
+  for (const file of migrationFiles) {
+    try {
+      const migrationPath = path.join(migrationsDir, file);
+      // Dynamic import for ESM compatibility
+      const migration = await import(migrationPath);
+
+      if (typeof migration.up === 'function') {
+        await migration.up(knexInstance);
+        console.log(`✅ Ran migration: ${file}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to run migration ${file}:`, error);
+      throw error;
+    }
   }
 }
 

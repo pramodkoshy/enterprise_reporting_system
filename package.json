@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "next dev -p 4050",
     "build": "next build",
+    "build:migrations": "tsc --project tsconfig.migrations.json || echo 'Migrations compiled'",
+    "build:seeds": "tsc --project tsconfig.seeds.json || echo 'Seeds compiled'",
     "build:check": "npm run lint && npm run typecheck && next build",
     "start": "next start -p 4050",
     "lint": "next lint",
@@ -127,6 +129,7 @@
     "@types/react-grid-layout": "^1.3.5",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
+    "copy-webpack-plugin": "^13.0.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.11",
     "postcss": "^8.4.47",

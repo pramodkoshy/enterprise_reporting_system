@@ -27,6 +27,22 @@ const nextConfig = {
         crypto: false,
       };
     }
+
+    // Copy migrations to standalone build
+    if (isServer) {
+      const CopyPlugin = require('copy-webpack-plugin');
+      config.plugins.push(
+        new CopyPlugin({
+          patterns: [
+            {
+              from: 'src/lib/db/migrations',
+              to: 'lib/db/migrations',
+            },
+          ],
+        })
+      );
+    }
+
     return config;
   },
 };

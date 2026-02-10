@@ -4,25 +4,64 @@ import { NextRequest, NextResponse } from 'next/server';
 // It should only be used for first-time setup
 export async function POST(request: NextRequest) {
   try {
-    // Import knex dynamically to avoid build issues
+    // Import modules
     const knex = require('knex');
     const path = require('path');
+    const fs = require('fs');
+
+    const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'config.sqlite');
+
+    // Ensure data directory exists
+    const dataDir = path.dirname(dbPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
 
     // Create knex instance for SQLite
     const knexInstance = knex({
       client: 'better-sqlite3',
       connection: {
-        filename: process.env.DATABASE_PATH || './data/config.sqlite',
+        filename: dbPath,
       },
       useNullAsDefault: true,
-      migrations: {
-        directory: path.join(process.cwd(), 'src/lib/db/migrations'),
-        extension: 'ts',
-      },
     });
 
-    // Run migrations
-    await knexInstance.migrate.latest();
+    // Run migrations directly using createRequire
+    const { createRequire } = require('module');
+    const migrationsDir = '/app/migrations';
+
+    if (!fs.existsSync(migrationsDir)) {
+      throw new Error(`Migrations directory not found: ${migrationsDir}`);
+    }
+
+    // Create require from a file that exists in the container
+    const nodeRequire = createRequire('/app/server.js');
+
+    const migrationFiles = fs.readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.js'))
+      .sort();
+
+    for (const file of migrationFiles) {
+      try {
+        const migrationPath = path.join(migrationsDir, file);
+
+        console.log(`Loading migration: ${file}...`);
+        const migration = nodeRequire(migrationPath);
+
+        console.log(`Migration loaded: ${file}, up: ${typeof migration?.up}`);
+
+        if (typeof migration?.up === 'function') {
+          console.log(`Running migration: ${file}...`);
+          await migration.up(knexInstance);
+          console.log(`✅ Ran migration: ${file}`);
+        } else {
+          console.log(`⚠️  No up function in ${file}`);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to run migration ${file}:`, error);
+        throw error;
+      }
+    }
 
     await knexInstance.destroy();
 
