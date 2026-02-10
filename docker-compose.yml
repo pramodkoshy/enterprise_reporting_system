@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Enterprise Reporting System - Docker Compose for Hostinger VPS
 # This setup uses bind mounts for data persistence (Hostinger best practice)
 # All data is stored on the VPS filesystem at /srv/enterprise-reporting-system/

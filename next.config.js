@@ -41,6 +41,13 @@ const nextConfig = {
           ],
         })
       );
+
+      // Ensure better-sqlite3 native module is properly bundled
+      // This is critical for Alpine/Docker builds
+      config.externals = config.externals || [];
+      config.externals.push({
+        'better-sqlite3': 'commonjs better-sqlite3',
+      });
     }
 
     return config;

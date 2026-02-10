@@ -42,7 +42,8 @@
     "test:dashboard": "playwright test e2e/dashboards.spec.ts --workers=1",
     "test:sql": "playwright test e2e/sql-editor.spec.ts --workers=1",
     "test:reports": "playwright test e2e/reports.spec.ts --workers=1",
-    "test:charts": "playwright test e2e/charts.spec.ts --workers=1"
+    "test:charts": "playwright test e2e/charts.spec.ts --workers=1",
+    "test:granular-permissions": "playwright test e2e/granular-permissions.spec.ts --workers=1"
   },
   "dependencies": {
     "@auth/core": "^0.34.2",

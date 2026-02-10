@@ -25,22 +25,46 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ShieldPlus, Shield, Trash2, Edit } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShieldPlus, Shield, Trash2, Edit, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Collapse } from '@/components/ui/collapse';
 import type { Role } from '@/types/database';
+
+interface ResourcePermission {
+  id: string;
+  role_id: string;
+  resource_type: string;
+  resource_id: string;
+  permission_level: 'view' | 'edit' | 'admin' | 'delete';
+}
+
+interface Resource {
+  id: string;
+  title: string;
+  type: string;
+}
 
 const PERMISSION_OPTIONS = [
   { value: 'data_source:view', label: 'Data Sources - View' },
   { value: 'data_source:*', label: 'Data Sources - Full Access' },
   { value: 'query:view', label: 'Queries - View' },
   { value: 'query:*', label: 'Queries - Full Access' },
-  { value: 'report:view', label: 'Reports - View' },
-  { value: 'report:export', label: 'Reports - Export' },
+  { value: 'report:view', label: 'Reports - View All' },
+  { value: 'report:edit', label: 'Reports - Edit All' },
   { value: 'report:*', label: 'Reports - Full Access' },
-  { value: 'chart:view', label: 'Charts - View' },
+  { value: 'chart:view', label: 'Charts - View All' },
+  { value: 'chart:edit', label: 'Charts - Edit All' },
   { value: 'chart:*', label: 'Charts - Full Access' },
-  { value: 'dashboard:view', label: 'Dashboards - View' },
-  { value: 'dashboard:edit', label: 'Dashboards - Edit' },
+  { value: 'dashboard:view', label: 'Dashboards - View All' },
+  { value: 'dashboard:edit', label: 'Dashboards - Edit All' },
   { value: 'dashboard:*', label: 'Dashboards - Full Access' },
   { value: 'job:view', label: 'Jobs - View' },
   { value: 'job:execute', label: 'Jobs - Execute' },
@@ -51,12 +75,19 @@ const PERMISSION_OPTIONS = [
 const PERMISSION_CATEGORIES = {
   'Data Sources': ['data_source:view', 'data_source:*'],
   'Queries': ['query:view', 'query:*'],
-  'Reports': ['report:view', 'report:export', 'report:*'],
-  'Charts': ['chart:view', 'chart:*'],
+  'Reports': ['report:view', 'report:edit', 'report:*'],
+  'Charts': ['chart:view', 'chart:edit', 'chart:*'],
   'Dashboards': ['dashboard:view', 'dashboard:edit', 'dashboard:*'],
   'Jobs': ['job:view', 'job:execute', 'job:*'],
   'Administration': ['user:*'],
 };
+
+const PERMISSION_LEVELS = [
+  { value: 'view', label: 'View' },
+  { value: 'edit', label: 'Edit' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'delete', label: 'Delete' },
+];
 
 export default function RolesManagementPage() {
   const queryClient = useQueryClient();
@@ -66,6 +97,7 @@ export default function RolesManagementPage() {
   const [roleName, setRoleName] = useState('');
   const [roleDescription, setRoleDescription] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [resourcePermissions, setResourcePermissions] = useState<ResourcePermission[]>([]);
 
   // Fetch roles
   const { data: roles, isLoading } = useQuery<Role[]>({
@@ -75,6 +107,18 @@ export default function RolesManagementPage() {
       const data = await res.json();
       return data.data || [];
     },
+  });
+
+  // Fetch resources and permissions for selected role
+  const { data: resourcesData } = useQuery({
+    queryKey: ['role-resources', selectedRole?.id],
+    queryFn: async () => {
+      if (!selectedRole) return null;
+      const res = await fetch(`/api/admin/roles/${selectedRole.id}/permissions`);
+      const data = await res.json();
+      return data.data;
+    },
+    enabled: !!selectedRole,
   });
 
   // Create role mutation
@@ -110,6 +154,8 @@ export default function RolesManagementPage() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!selectedRole) return;
+
+      // Update role permissions
       const res = await fetch(`/api/admin/roles/${selectedRole.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -122,11 +168,24 @@ export default function RolesManagementPage() {
         const error = await res.json();
         throw new Error(error.error?.message || 'Failed to update role');
       }
+
+      // Update resource permissions
+      const permRes = await fetch(`/api/admin/roles/${selectedRole.id}/permissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: resourcePermissions }),
+      });
+      if (!permRes.ok) {
+        const error = await permRes.json();
+        throw new Error(error.error?.message || 'Failed to update resource permissions');
+      }
+
       return res.json();
     },
     onSuccess: () => {
       toast.success('Role updated successfully');
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['role-resources', selectedRole?.id] });
       setEditDialogOpen(false);
       setSelectedRole(null);
       resetForm();
@@ -161,9 +220,10 @@ export default function RolesManagementPage() {
     setRoleName('');
     setRoleDescription('');
     setSelectedPermissions([]);
+    setResourcePermissions([]);
   };
 
-  const openEditDialog = (role: Role) => {
+  const openEditDialog = async (role: Role) => {
     setSelectedRole(role);
     setRoleName(role.name);
     setRoleDescription(role.description || '');
@@ -173,6 +233,20 @@ export default function RolesManagementPage() {
     } catch {
       setSelectedPermissions([]);
     }
+
+    // Fetch resource permissions for this role
+    try {
+      const res = await fetch(`/api/admin/roles/${role.id}/permissions`);
+      const data = await res.json();
+      if (data.success && data.data?.resourcePermissions) {
+        setResourcePermissions(data.data.resourcePermissions);
+      } else {
+        setResourcePermissions([]);
+      }
+    } catch {
+      setResourcePermissions([]);
+    }
+
     setEditDialogOpen(true);
   };
 
@@ -182,6 +256,47 @@ export default function RolesManagementPage() {
         ? prev.filter((p) => p !== permission)
         : [...prev, permission]
     );
+  };
+
+  const addResourcePermission = (resourceType: string, resourceId: string, permissionLevel: string) => {
+    const newPerm: ResourcePermission = {
+      id: Math.random().toString(36).substring(2, 15),
+      role_id: selectedRole?.id || '',
+      resource_type: resourceType,
+      resource_id: resourceId,
+      permission_level: permissionLevel as any,
+    };
+    setResourcePermissions((prev) => [...prev, newPerm]);
+  };
+
+  const removeResourcePermission = (index: number) => {
+    setResourcePermissions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateResourcePermissionLevel = (index: number, level: string, resourceType: string, resourceId: string) => {
+    setResourcePermissions((prev) => {
+      // If "none" is selected, remove the permission
+      if (level === 'none') {
+        return prev.filter((_, i) => i !== index);
+      }
+
+      // If permission exists at index, update it
+      if (index >= 0 && index < prev.length) {
+        return prev.map((perm, i) =>
+          i === index ? { ...perm, permission_level: level as any } : perm
+        );
+      }
+
+      // Otherwise, add new permission
+      const newPerm: ResourcePermission = {
+        id: Math.random().toString(36).substring(2, 15),
+        role_id: selectedRole?.id || '',
+        resource_type: resourceType,
+        resource_id: resourceId,
+        permission_level: level as any,
+      };
+      return [...prev, newPerm];
+    });
   };
 
   const getRoleBadgeColor = (roleName: string) => {
@@ -196,7 +311,7 @@ export default function RolesManagementPage() {
         <div>
           <h1 className="text-2xl font-bold">Role Management</h1>
           <p className="text-muted-foreground">
-            Manage roles and their permissions
+            Manage roles and their granular permissions
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
@@ -241,23 +356,11 @@ export default function RolesManagementPage() {
                         {(() => {
                           try {
                             const perms = JSON.parse(role.permissions);
-                            return perms.slice(0, 3).map((perm: string) => (
+                            return perms.slice(0, 2).map((perm: string) => (
                               <Badge key={perm} variant="outline" className="text-xs">
                                 {perm}
                               </Badge>
                             ));
-                          } catch {
-                            return null;
-                          }
-                        })()}
-                        {(() => {
-                          try {
-                            const perms = JSON.parse(role.permissions);
-                            return perms.length > 3 ? (
-                              <Badge variant="outline" className="text-xs">
-                                +{perms.length - 3} more
-                              </Badge>
-                            ) : null;
                           } catch {
                             return null;
                           }
@@ -301,21 +404,21 @@ export default function RolesManagementPage() {
 
       {/* Create Role Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Role</DialogTitle>
             <DialogDescription>
-              Create a new role and define its permissions
+              Create a new role and define its global and resource-specific permissions
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="role-name">Role Name *</Label>
               <Input
                 id="role-name"
                 value={roleName}
                 onChange={(e) => setRoleName(e.target.value)}
-                placeholder="e.g., Viewer, Editor, Manager"
+                placeholder="e.g., Sales Viewer, Report Editor"
               />
             </div>
             <div className="space-y-2">
@@ -329,31 +432,165 @@ export default function RolesManagementPage() {
               />
             </div>
 
-            <div className="space-y-4">
-              <Label>Permissions</Label>
-              {Object.entries(PERMISSION_CATEGORIES).map(([category, perms]) => (
-                <div key={category} className="space-y-2">
-                  <h4 className="text-sm font-medium">{category}</h4>
-                  <div className="space-y-2 pl-4">
-                    {perms.map((perm) => (
-                      <div key={perm} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`perm-${perm}`}
-                          checked={selectedPermissions.includes(perm)}
-                          onCheckedChange={() => togglePermission(perm)}
-                        />
-                        <label
-                          htmlFor={`perm-${perm}`}
-                          className="text-sm cursor-pointer flex-1"
-                        >
-                          {perm.replace(/:/g, ' → ')}
-                        </label>
+            <Tabs defaultValue="global" className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="global">Global Permissions</TabsTrigger>
+                <TabsTrigger value="resources">Resource Permissions</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="global" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <Label>Global Permissions</Label>
+                  {Object.entries(PERMISSION_CATEGORIES).map(([category, perms]) => (
+                    <div key={category} className="space-y-2">
+                      <h4 className="text-sm font-medium">{category}</h4>
+                      <div className="space-y-2 pl-4">
+                        {perms.map((perm) => (
+                          <div key={perm} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`perm-${perm}`}
+                              checked={selectedPermissions.includes(perm)}
+                              onCheckedChange={() => togglePermission(perm)}
+                            />
+                            <label
+                              htmlFor={`perm-${perm}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {perm.replace(/:/g, ' → ')}
+                            </label>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="resources" className="space-y-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Add specific permissions for individual reports, charts, and dashboards.
+                </p>
+
+                {/* Reports Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Reports</h4>
+                  </div>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.reports?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'report' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => {
+                              if (value) {
+                                addResourcePermission('report', resource.id, value);
+                              } else {
+                                const idx = resourcePermissions.findIndex(
+                                  p => p.resource_type === 'report' && p.resource_id === resource.id
+                                );
+                                if (idx !== -1) removeResourcePermission(idx);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+
+                {/* Charts Section */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Charts</h4>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.charts?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'chart' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => {
+                              if (value) {
+                                addResourcePermission('chart', resource.id, value);
+                              } else {
+                                const idx = resourcePermissions.findIndex(
+                                  p => p.resource_type === 'chart' && p.resource_id === resource.id
+                                );
+                                if (idx !== -1) removeResourcePermission(idx);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+
+                {/* Dashboards Section */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Dashboards</h4>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.dashboards?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'dashboard' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => {
+                              if (value) {
+                                addResourcePermission('dashboard', resource.id, value);
+                              } else {
+                                const idx = resourcePermissions.findIndex(
+                                  p => p.resource_type === 'dashboard' && p.resource_id === resource.id
+                                );
+                                if (idx !== -1) removeResourcePermission(idx);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -361,7 +598,7 @@ export default function RolesManagementPage() {
             </Button>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={!roleName || selectedPermissions.length === 0 || createMutation.isPending}
+              disabled={!roleName || (selectedPermissions.length === 0 && resourcePermissions.length === 0) || createMutation.isPending}
             >
               {createMutation.isPending ? 'Creating...' : 'Create Role'}
             </Button>
@@ -371,14 +608,14 @@ export default function RolesManagementPage() {
 
       {/* Edit Role Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Role</DialogTitle>
             <DialogDescription>
-              Update role permissions for <strong>{selectedRole?.name}</strong>
+              Update global and resource-specific permissions for <strong>{selectedRole?.name}</strong>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-role-description">Description</Label>
               <Textarea
@@ -390,31 +627,154 @@ export default function RolesManagementPage() {
               />
             </div>
 
-            <div className="space-y-4">
-              <Label>Permissions</Label>
-              {Object.entries(PERMISSION_CATEGORIES).map(([category, perms]) => (
-                <div key={category} className="space-y-2">
-                  <h4 className="text-sm font-medium">{category}</h4>
-                  <div className="space-y-2 pl-4">
-                    {perms.map((perm) => (
-                      <div key={perm} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`edit-perm-${perm}`}
-                          checked={selectedPermissions.includes(perm)}
-                          onCheckedChange={() => togglePermission(perm)}
-                        />
-                        <label
-                          htmlFor={`edit-perm-${perm}`}
-                          className="text-sm cursor-pointer flex-1"
-                        >
-                          {perm.replace(/:/g, ' → ')}
-                        </label>
+            <Tabs defaultValue="global" className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="global">Global Permissions</TabsTrigger>
+                <TabsTrigger value="resources">Resource Permissions</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="global" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <Label>Global Permissions</Label>
+                  {Object.entries(PERMISSION_CATEGORIES).map(([category, perms]) => (
+                    <div key={category} className="space-y-2">
+                      <h4 className="text-sm font-medium">{category}</h4>
+                      <div className="space-y-2 pl-4">
+                        {perms.map((perm) => (
+                          <div key={perm} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-perm-${perm}`}
+                              checked={selectedPermissions.includes(perm)}
+                              onCheckedChange={() => togglePermission(perm)}
+                            />
+                            <label
+                              htmlFor={`edit-perm-${perm}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {perm.replace(/:/g, ' → ')}
+                            </label>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="resources" className="space-y-4 mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Add specific permissions for individual reports, charts, and dashboards.
+                </p>
+
+                {/* Reports Section */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Reports</h4>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.reports?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'report' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => updateResourcePermissionLevel(
+                              resourcePermissions.findIndex(p => p.resource_type === 'report' && p.resource_id === resource.id) || -1,
+                              value,
+                              'report',
+                              resource.id
+                            )}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+
+                {/* Charts Section */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Charts</h4>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.charts?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'chart' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => updateResourcePermissionLevel(
+                              resourcePermissions.findIndex(p => p.resource_type === 'chart' && p.resource_id === resource.id) || -1,
+                              value,
+                              'chart',
+                              resource.id
+                            )}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+
+                {/* Dashboards Section */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Dashboards</h4>
+                  <Collapse className="pl-4">
+                    {resourcesData?.resources?.dashboards?.map((resource: Resource) => {
+                      const existingPerm = resourcePermissions.find(
+                        p => p.resource_type === 'dashboard' && p.resource_id === resource.id
+                      );
+                      return (
+                        <div key={resource.id} className="flex items-center gap-2 py-2 border-b">
+                          <span className="flex-1 text-sm">{resource.title}</span>
+                          <Select
+                            value={existingPerm?.permission_level || ''}
+                            onValueChange={(value) => updateResourcePermissionLevel(
+                              resourcePermissions.findIndex(p => p.resource_type === 'dashboard' && p.resource_id === resource.id) || -1,
+                              value,
+                              'dashboard',
+                              resource.id
+                            )}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="view">View</SelectItem>
+                              <SelectItem value="edit">Edit</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </Collapse>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
@@ -422,7 +782,7 @@ export default function RolesManagementPage() {
             </Button>
             <Button
               onClick={() => updateMutation.mutate()}
-              disabled={selectedPermissions.length === 0 || updateMutation.isPending}
+              disabled={updateMutation.isPending}
             >
               {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>

@@ -14,8 +14,14 @@
 set -e
 
 # Configuration
-VPS_USER="${1:-root}"
-VPS_HOST="${2:-148.135.137.110}"
+# Parse user@host if provided as single argument, or use separate arguments
+if [[ "$1" == *@* ]]; then
+  VPS_USER="${1%@*}"
+  VPS_HOST="${1#*@}"
+else
+  VPS_USER="${1:-root}"
+  VPS_HOST="${2:-148.135.137.110}"
+fi
 VPS_PATH="/srv/enterprise-reporting-system"
 APP_NAME="enterprise-reporting-system"
 IMAGE_NAME="${APP_NAME}:latest"
@@ -121,9 +127,8 @@ echo ""
 echo "✅ Deployment successful!"
 echo ""
 echo "🔗 Next steps:"
-echo "   1. Initialize database: ssh ${VPS_USER}@${VPS_HOST} 'curl -X POST http://localhost:3000/api/setup'"
-echo "   2. Seed database with admin user: ssh ${VPS_USER}@${VPS_HOST} 'curl -X POST http://localhost:3000/api/seed'"
-echo "   3. Access application: http://${VPS_HOST}:3000"
-echo "   4. Default credentials: admin@admin.com / admin"
-echo "   5. View logs: ssh ${VPS_USER}@${VPS_HOST} 'cd ${VPS_PATH} && docker compose logs -f'"
+echo "   1. Wait for database initialization (happens automatically on first start)"
+echo "   2. Access application: http://${VPS_HOST}:3000"
+echo "   3. Default credentials: admin@admin.com / admin"
+echo "   4. View logs: ssh ${VPS_USER}@${VPS_HOST} 'cd ${VPS_PATH} && docker compose logs -f'"
 echo ""

@@ -8,18 +8,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies for native modules (better-sqlite3)
 RUN apk add --no-cache \
     python3 \
     make \
-    g++
+    g++ \
+    sqlite
 
 # Copy package files and application files
 COPY package.json package-lock.json ./
 COPY . .
 
 # Install ALL dependencies (including dev dependencies needed for build)
-RUN npm ci && \
+# Rebuild better-sqlite3 from source to ensure it's compiled for Alpine/musl
+RUN npm ci --build-from-source=better-sqlite3 && \
     npm cache clean --force
 
 # Compile TypeScript migrations to JavaScript
@@ -39,10 +41,12 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies for better-sqlite3
 RUN apk add --no-cache \
     wget \
-    openssl
+    openssl \
+    sqlite \
+    su-exec
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
@@ -56,28 +60,38 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# IMPORTANT: Copy native modules (better-sqlite3) from builder
+# Next.js standalone build doesn't automatically include all native modules
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/knex ./node_modules/knex
+
 # Copy migrations and seeds directories for database setup
 COPY --from=builder --chown=nextjs:nodejs /app/dist/migrations /app/migrations
 COPY --from=builder --chown=nextjs:nodejs /app/dist/seeds /app/seeds
 
+# Copy knex CLI and knexfile for runtime migrations
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/knex/bin/cli.js /app/node_modules/.bin/knex
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/db/knexfile.ts /app/src/lib/db/knexfile.ts
+
+# Copy entrypoint script
+COPY --from=builder --chown=nextjs:nodejs /app/docker-entrypoint.sh /app/docker-entrypoint.sh
+
 # Create required directories with correct permissions
 RUN mkdir -p /app/data /app/job-outputs /app/uploads /app/logs && \
-    chown -R nextjs:nodejs /app/data /app/job-outputs /app/uploads /app/logs
-
-# Switch to non-root user
-USER nextjs
+    chown -R nextjs:nodejs /app/data /app/job-outputs /app/uploads /app/logs && \
+    chmod +x /app/docker-entrypoint.sh
 
 # Expose application port
 EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
 # Set environment to production
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000
 
-# Start the application
-CMD ["node", "server.js"]
+# Use entrypoint script to handle database initialization
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
