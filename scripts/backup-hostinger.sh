@@ -4,10 +4,9 @@
 # Automated Backup Script for Hostinger
 # ==========================================
 # This script creates automated backups of:
-# - PostgreSQL database
+# - SQLite configuration database
 # - Redis data
-# - Application data
-# - Uploads
+# - Application data (uploads, job outputs)
 #
 # Setup:
 #   1. Copy this script to /usr/local/bin/ers-backup.sh
@@ -30,37 +29,47 @@ mkdir -p "${BACKUP_PATH}/${TIMESTAMP}"
 
 echo "Starting backup at $(date)"
 
-# 1. Backup PostgreSQL
-echo "Backing up PostgreSQL..."
-docker exec ers-postgres pg_dump -U ersuser enterprise_reporting > "${BACKUP_PATH}/${TIMESTAMP}/postgres.sql"
-gzip "${BACKUP_PATH}/${TIMESTAMP}/postgres.sql"
+# 1. Backup SQLite database (safe copy while app is running)
+echo "Backing up SQLite database..."
+if [ -f "${DATA_PATH}/app/data/config.sqlite" ]; then
+    # Use sqlite3 .backup for a consistent snapshot, fall back to cp
+    docker exec ers-app sh -c 'sqlite3 /app/data/config.sqlite ".backup /tmp/config-backup.sqlite"' 2>/dev/null && \
+        docker cp ers-app:/tmp/config-backup.sqlite "${BACKUP_PATH}/${TIMESTAMP}/config.sqlite" || \
+        cp "${DATA_PATH}/app/data/config.sqlite" "${BACKUP_PATH}/${TIMESTAMP}/config.sqlite"
+    gzip "${BACKUP_PATH}/${TIMESTAMP}/config.sqlite"
+    echo "SQLite backup complete"
+else
+    echo "No SQLite database found, skipping..."
+fi
 
 # 2. Backup Redis (create snapshot)
 echo "Backing up Redis..."
-docker exec ers-redis redis-cli --rdb /data/dump.rdb SAVE
-cp "${DATA_PATH}/redis/data/dump.rdb" "${BACKUP_PATH}/${TIMESTAMP}/redis.rdb"
-gzip "${BACKUP_PATH}/${TIMESTAMP}/redis.rmb"
+docker exec ers-redis redis-cli SAVE 2>/dev/null || true
+if [ -f "${DATA_PATH}/redis/data/dump.rdb" ]; then
+    cp "${DATA_PATH}/redis/data/dump.rdb" "${BACKUP_PATH}/${TIMESTAMP}/redis.rdb"
+    gzip "${BACKUP_PATH}/${TIMESTAMP}/redis.rdb"
+fi
 
-# 3. Backup application data (SQLite, configs)
+# 3. Backup application data
 echo "Backing up application data..."
-tar -czf "${BACKUP_PATH}/${TIMESTAMP}/app-data.tar.gz" -C "${DATA_PATH}/app" data
+tar -czf "${BACKUP_PATH}/${TIMESTAMP}/app-data.tar.gz" -C "${DATA_PATH}/app" data 2>/dev/null || true
 
 # 4. Backup uploads
 echo "Backing up uploads..."
-tar -czf "${BACKUP_PATH}/${TIMESTAMP}/uploads.tar.gz" -C "${DATA_PATH}/app" uploads
+tar -czf "${BACKUP_PATH}/${TIMESTAMP}/uploads.tar.gz" -C "${DATA_PATH}/app" uploads 2>/dev/null || true
 
 # 5. Backup job outputs
 echo "Backing up job outputs..."
-tar -czf "${BACKUP_PATH}/${TIMESTAMP}/job-outputs.tar.gz" -C "${DATA_PATH}/app" job-outputs
+tar -czf "${BACKUP_PATH}/${TIMESTAMP}/job-outputs.tar.gz" -C "${DATA_PATH}/app" job-outputs 2>/dev/null || true
 
 # Create backup manifest
 cat > "${BACKUP_PATH}/${TIMESTAMP}/manifest.txt" <<EOF
 Backup created: $(date)
 System: Enterprise Reporting System
 Components:
-  - PostgreSQL database dump
+  - SQLite configuration database
   - Redis data snapshot
-  - Application data (SQLite configs)
+  - Application data
   - User uploads
   - Job outputs
 EOF
