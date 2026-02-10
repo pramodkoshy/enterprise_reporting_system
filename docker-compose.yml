@@ -1,9 +1,43 @@
 # Enterprise Reporting System - Docker Compose for Hostinger VPS
 # This setup uses bind mounts for data persistence (Hostinger best practice)
 # All data is stored on the VPS filesystem at /srv/enterprise-reporting-system/
-# SQLite-only configuration (no PostgreSQL)
+# Includes Nginx reverse proxy with automatic SSL via Let's Encrypt
 
 services:
+  # Nginx Reverse Proxy with SSL
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ers-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${DATA_PATH:-/srv/enterprise-reporting-system}/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ${DATA_PATH:-/srv/enterprise-reporting-system}/certbot/conf:/etc/letsencrypt:ro
+      - ${DATA_PATH:-/srv/enterprise-reporting-system}/certbot/www:/var/www/certbot:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ers-network
+
+  # Certbot for automatic SSL certificate renewal
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ers-certbot
+    volumes:
+      - ${DATA_PATH:-/srv/enterprise-reporting-system}/certbot/conf:/etc/letsencrypt
+      - ${DATA_PATH:-/srv/enterprise-reporting-system}/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
+    networks:
+      - ers-network
+
   # Redis (for BullMQ job queue)
   redis:
     image: redis:7-alpine
@@ -11,10 +45,7 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      # Bind mount: VPS path → Container path
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/redis/data:/data
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
@@ -28,8 +59,6 @@ services:
     image: enterprise-reporting-system:latest
     container_name: ers-app
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
     environment:
       # Application
       NODE_ENV: production
@@ -64,14 +93,9 @@ services:
       VIRTUAL_SCROLL_THRESHOLD: ${VIRTUAL_SCROLL_THRESHOLD:-500}
       ENABLE_VIRTUAL_SCROLLING: ${ENABLE_VIRTUAL_SCROLLING:-true}
     volumes:
-      # Bind mounts: VPS paths → Container paths
-      # Configuration database (SQLite)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/data:/app/data
-      # Job outputs (exported reports, charts, etc.)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/job-outputs:/app/job-outputs
-      # Uploads (user uploaded files, test databases)
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/uploads:/app/uploads
-      # Logs
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/logs:/app/logs
     depends_on:
       redis:
