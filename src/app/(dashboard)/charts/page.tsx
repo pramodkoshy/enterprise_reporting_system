@@ -62,9 +62,9 @@ export default function ChartsPage() {
   const [selectedQueryId, setSelectedQueryId] = useState('');
 
   // Permission hooks
-  const { data: canCreateChart } = useCanCreate('chart');
-  const { data: canEditCharts } = useCanEdit('chart');
-  const { data: canDeleteCharts } = useCanDelete('chart');
+  const canCreateChart = useCanCreate('chart');
+  const canEditCharts = useCanEdit('chart');
+  const canDeleteCharts = useCanDelete('chart');
 
   const chartTypeIcons = useMemo<Record<ChartType, React.ReactNode>>(() => ({
     bar: <BarChart3 className="h-4 w-4" />,

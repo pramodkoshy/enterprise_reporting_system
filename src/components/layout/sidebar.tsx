@@ -58,16 +58,16 @@ const adminNavItems = [
 export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { data: permissions } = usePermissions();
-  const { data: canViewQuery } = useCanView('query');
-  const { data: canViewReport } = useCanView('report');
-  const { data: canViewChart } = useCanView('chart');
-  const { data: canViewDashboard } = useCanView('dashboard');
-  const { data: canViewFilter } = useCanView('filter');
-  const { data: canViewJob } = useCanView('job');
-  const { data: canViewDataSource } = useCanView('data_source');
-  const { data: canViewQueue } = useCanView('queue');
-  const { data: canViewUser } = useCanView('user');
-  const { data: canViewRole } = useCanView('role');
+  const canViewQuery = useCanView('query');
+  const canViewReport = useCanView('report');
+  const canViewChart = useCanView('chart');
+  const canViewDashboard = useCanView('dashboard');
+  const canViewFilter = useCanView('filter');
+  const canViewJob = useCanView('job');
+  const canViewDataSource = useCanView('data_source');
+  const canViewQueue = useCanView('queue');
+  const canViewUser = useCanView('user');
+  const canViewRole = useCanView('role');
 
   // Derive isAdmin directly from permissions to avoid duplicate queries
   const isAdminUser = permissions?.isAdmin ?? false;
@@ -80,16 +80,16 @@ export function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     // (they'll be filtered once permissions load)
     if (permissions === undefined) return true;
     switch (permissionKey) {
-      case 'query': return canViewQuery ?? false;
-      case 'report': return canViewReport ?? false;
-      case 'chart': return canViewChart ?? false;
-      case 'dashboard': return canViewDashboard ?? false;
-      case 'filter': return canViewFilter ?? false;
-      case 'job': return canViewJob ?? false;
-      case 'data_source': return canViewDataSource ?? false;
-      case 'queue': return canViewQueue ?? false;
-      case 'user': return canViewUser ?? false;
-      case 'role': return canViewRole ?? false;
+      case 'query': return canViewQuery;
+      case 'report': return canViewReport;
+      case 'chart': return canViewChart;
+      case 'dashboard': return canViewDashboard;
+      case 'filter': return canViewFilter;
+      case 'job': return canViewJob;
+      case 'data_source': return canViewDataSource;
+      case 'queue': return canViewQueue;
+      case 'user': return canViewUser;
+      case 'role': return canViewRole;
       default: return true;
     }
   };

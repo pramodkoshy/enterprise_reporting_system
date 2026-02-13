@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get data source
+    console.warn('[SQL EXECUTE] Getting data source from database, ID:', dataSourceId);
     const db = getDb();
     const dataSource = await db<DataSource>('data_sources')
       .where('id', dataSourceId)
@@ -62,13 +63,17 @@ export async function POST(request: NextRequest) {
       .first();
 
     if (!dataSource) {
+      console.error('[SQL EXECUTE ERROR] Data source not found, ID:', dataSourceId);
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Data source not found' } },
         { status: 404 }
       );
     }
 
+    console.warn('[SQL EXECUTE] Data source found:', dataSource.name, 'Client type:', dataSource.client_type);
+
     // Get connection
+    console.warn('[SQL EXECUTE] About to call getConnection for data source:', dataSource.id);
     const connection = await getConnection(dataSource);
 
     // Use SQL Editor pagination: 500 rows per page
@@ -218,7 +223,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('SQL execution error:', error);
+    console.error('[SQL EXECUTE ERROR] SQL execution error!');
+    console.error('[SQL EXECUTE ERROR] Error:', error);
+    if (error instanceof Error) {
+      console.error('[SQL EXECUTE ERROR] Error name:', error.name);
+      console.error('[SQL EXECUTE ERROR] Error message:', error.message);
+      console.error('[SQL EXECUTE ERROR] Error stack:', error.stack);
+    }
     return NextResponse.json(
       {
         success: false,

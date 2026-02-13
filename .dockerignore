@@ -45,11 +45,14 @@ docker-compose*.yml
 Thumbs.db
 
 # Data directories (these are mounted as volumes)
-data
+data/*
 job-outputs
 uploads
 logs
 database
+
+# Exception: Include Sakila demo database
+!data/uploads/sakila.db
 
 # Scripts not needed at build time
 scripts/diagnose-vps.sh

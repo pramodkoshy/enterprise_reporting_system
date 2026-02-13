@@ -57,9 +57,9 @@ export default function DashboardsPage() {
   const [editingDashboard, setEditingDashboard] = useState<DashboardLayout | null>(null);
 
   // Permission hooks
-  const { data: canCreateDashboard } = useCanCreate('dashboard');
-  const { data: canEditDashboards } = useCanEdit('dashboard');
-  const { data: canDeleteDashboards } = useCanDelete('dashboard');
+  const canCreateDashboard = useCanCreate('dashboard');
+  const canEditDashboards = useCanEdit('dashboard');
+  const canDeleteDashboards = useCanDelete('dashboard');
 
   const { data: dashboards, isLoading } = useQuery<DashboardLayout[]>({
     queryKey: ['dashboards'],

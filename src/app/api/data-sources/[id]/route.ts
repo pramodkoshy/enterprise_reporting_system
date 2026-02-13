@@ -4,15 +4,23 @@ import { getDb } from '@/lib/db/config';
 import { decrypt } from '@/lib/security/encryption';
 import { getConnection, closeConnection } from '@/lib/db/connection-manager';
 import type { DataSource } from '@/types/database';
+import { log } from '@/lib/utils/logger';
 
 interface RouteContext {
   params: { id: string };
 }
 
 export async function GET(request: NextRequest, { params }: RouteContext) {
+  const startTime = Date.now();
+  const path = `/api/data-sources/${params.id}`;
+  const method = 'GET';
+
   try {
+    log.apiRequest(method, path, undefined, { operation: 'fetch_data_source', dataSourceId: params.id });
+
     const session = await auth();
     if (!session?.user) {
+      log.warn('Unauthorized access attempt', { path, method, dataSourceId: params.id });
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
         { status: 401 }
@@ -21,20 +29,61 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 
     const { id } = params;
     const db = getDb();
+    log.dbQuery('SELECT', 'data_sources', { id });
+
     const dataSource = await db<DataSource>('data_sources')
       .where('id', id)
       .where('is_deleted', false)
       .first();
 
     if (!dataSource) {
+      log.warn('Data source not found', { dataSourceId: id });
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Data source not found' } },
         { status: 404 }
       );
     }
 
-    // Return with decrypted connection config for editing
-    const connectionConfig = JSON.parse(decrypt(dataSource.connection_config));
+    // Decrypt connection config (or parse plain JSON for backwards compatibility)
+    log.info('Decrypting connection config for data source', { dataSourceId: id, name: dataSource.name });
+    let connectionConfig;
+
+    try {
+      // Check if connection_config is encrypted (should be hex string with sufficient length)
+      const isEncrypted = dataSource.connection_config.length > 64 &&
+                          /^[0-9a-fA-F]+$/.test(dataSource.connection_config);
+
+      if (isEncrypted) {
+        connectionConfig = JSON.parse(decrypt(dataSource.connection_config));
+        log.info('Connection config decrypted successfully', { dataSourceId: id });
+      } else {
+        // Plain text JSON - backwards compatibility
+        log.warn('Data source has plain JSON config (not encrypted) - using backwards compatibility', {
+          dataSourceId: id,
+          name: dataSource.name,
+        });
+        connectionConfig = JSON.parse(dataSource.connection_config);
+
+        // Re-encrypt in the background
+        const { encrypt } = await import('@/lib/security/encryption');
+        const encryptedConfig = encrypt(JSON.stringify(connectionConfig));
+        db('data_sources')
+          .where('id', id)
+          .update({ connection_config: encryptedConfig })
+          .then(() => {
+            log.info('Plain JSON config re-encrypted and saved', { dataSourceId: id });
+          })
+          .catch((err) => {
+            log.error('Failed to re-encrypt config', { dataSourceId: id }, err);
+          });
+      }
+    } catch (decryptError) {
+      log.error('Failed to decrypt connection config', { dataSourceId: id }, decryptError as Error);
+      throw decryptError;
+    }
+
+    const duration = Date.now() - startTime;
+    log.apiResponse(method, path, 200, duration);
 
     return NextResponse.json({
       success: true,
@@ -44,7 +93,9 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       },
     });
   } catch (error) {
-    console.error('Error fetching data source:', error);
+    const duration = Date.now() - startTime;
+    log.apiError(method, path, 500, error as Error, { duration, dataSourceId: params.id });
+
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch data source' } },
       { status: 500 }

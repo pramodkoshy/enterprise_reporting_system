@@ -8,18 +8,32 @@ const KEY_LENGTH = 32;
 
 function getKey(): Buffer {
   const encryptionKey = process.env.ENCRYPTION_KEY;
+  console.warn('[ENCRYPTION DEBUG] getKey() called');
+  console.warn('[ENCRYPTION DEBUG] ENCRYPTION_KEY env variable exists:', !!encryptionKey);
+  if (encryptionKey) {
+    console.warn('[ENCRYPTION DEBUG] ENCRYPTION_KEY length:', encryptionKey.length, 'characters');
+    console.warn('[ENCRYPTION DEBUG] ENCRYPTION_KEY is hex string:', /^[0-9a-fA-F]+$/.test(encryptionKey));
+  }
+
   if (!encryptionKey) {
     // For development, use a default key (DO NOT use in production)
+    console.warn('[ENCRYPTION DEBUG] Using DEFAULT development key - NOT SECURE FOR PRODUCTION!');
     return crypto.scryptSync('default-dev-key-change-in-production', 'salt', KEY_LENGTH);
   }
 
   // If the key is a hex string, convert it
   if (/^[0-9a-fA-F]+$/.test(encryptionKey)) {
-    return Buffer.from(encryptionKey, 'hex');
+    console.warn('[ENCRYPTION DEBUG] Converting hex string to Buffer');
+    const key = Buffer.from(encryptionKey, 'hex');
+    console.warn('[ENCRYPTION DEBUG] Converted key length:', key.length, 'bytes');
+    return key;
   }
 
   // Otherwise, derive a key from the string
-  return crypto.scryptSync(encryptionKey, 'salt', KEY_LENGTH);
+  console.warn('[ENCRYPTION DEBUG] Deriving key from string using scrypt');
+  const key = crypto.scryptSync(encryptionKey, 'salt', KEY_LENGTH);
+  console.warn('[ENCRYPTION DEBUG] Derived key length:', key.length, 'bytes');
+  return key;
 }
 
 export function encrypt(plaintext: string): string {
@@ -38,20 +52,60 @@ export function encrypt(plaintext: string): string {
 }
 
 export function decrypt(ciphertext: string): string {
+  // WARN: Log ciphertext properties for debugging
+  console.warn('[ENCRYPTION DEBUG] Decrypt called with ciphertext length:', ciphertext.length);
+  console.warn('[ENCRYPTION DEBUG] Expected ciphertext format: IV(32 chars) + AuthTag(32 chars) + EncryptedData');
+  console.warn('[ENCRYPTION DEBUG] IV_LENGTH * 2 =', IV_LENGTH * 2, 'chars');
+  console.warn('[ENCRYPTION DEBUG] (IV_LENGTH + AUTH_TAG_LENGTH) * 2 =', (IV_LENGTH + AUTH_TAG_LENGTH) * 2, 'chars');
+
   const key = getKey();
+  console.warn('[ENCRYPTION DEBUG] Key length:', key.length, 'bytes');
+  console.warn('[ENCRYPTION DEBUG] Algorithm:', ALGORITHM);
 
-  // Extract IV, AuthTag, and encrypted data
-  const iv = Buffer.from(ciphertext.slice(0, IV_LENGTH * 2), 'hex');
-  const authTag = Buffer.from(ciphertext.slice(IV_LENGTH * 2, (IV_LENGTH + AUTH_TAG_LENGTH) * 2), 'hex');
-  const encrypted = ciphertext.slice((IV_LENGTH + AUTH_TAG_LENGTH) * 2);
+  try {
+    // Extract IV, AuthTag, and encrypted data
+    if (ciphertext.length < (IV_LENGTH + AUTH_TAG_LENGTH) * 2) {
+      console.error('[ENCRYPTION ERROR] Ciphertext is too short!');
+      console.error('[ENCRYPTION ERROR] Ciphertext length:', ciphertext.length, 'characters');
+      console.error('[ENCRYPTION ERROR] Minimum required length:', (IV_LENGTH + AUTH_TAG_LENGTH) * 2, 'characters');
+      console.error('[ENCRYPTION ERROR] Ciphertext (first 100 chars):', ciphertext.substring(0, 100));
+      throw new Error(`Invalid ciphertext length: ${ciphertext.length}. Expected at least ${(IV_LENGTH + AUTH_TAG_LENGTH) * 2} characters.`);
+    }
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+    console.warn('[ENCRYPTION DEBUG] Ciphertext length OK, proceeding to extract IV, AuthTag, and encrypted data');
 
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
+    const iv = Buffer.from(ciphertext.slice(0, IV_LENGTH * 2), 'hex');
+    console.warn('[ENCRYPTION DEBUG] IV extracted successfully, length:', iv.length, 'bytes');
 
-  return decrypted;
+    const authTag = Buffer.from(ciphertext.slice(IV_LENGTH * 2, (IV_LENGTH + AUTH_TAG_LENGTH) * 2), 'hex');
+    console.warn('[ENCRYPTION DEBUG] AuthTag extracted successfully, length:', authTag.length, 'bytes');
+
+    const encrypted = ciphertext.slice((IV_LENGTH + AUTH_TAG_LENGTH) * 2);
+    console.warn('[ENCRYPTION DEBUG] Encrypted data extracted, length:', encrypted.length, 'characters');
+
+    console.warn('[ENCRYPTION DEBUG] Creating decipher with algorithm:', ALGORITHM);
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+
+    console.warn('[ENCRYPTION DEBUG] Starting decryption...');
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    console.warn('[ENCRYPTION DEBUG] Decryption update successful, decrypted length:', decrypted.length);
+
+    decrypted += decipher.final('utf8');
+    console.warn('[ENCRYPTION DEBUG] Decryption successful! Final plaintext length:', decrypted.length);
+    console.warn('[ENCRYPTION DEBUG] Plaintext (first 200 chars):', decrypted.substring(0, 200));
+
+    return decrypted;
+  } catch (error) {
+    console.error('[ENCRYPTION ERROR] Decryption failed!');
+    console.error('[ENCRYPTION ERROR] Error:', error);
+    if (error instanceof Error) {
+      console.error('[ENCRYPTION ERROR] Error name:', error.name);
+      console.error('[ENCRYPTION ERROR] Error message:', error.message);
+      console.error('[ENCRYPTION ERROR] Error stack:', error.stack);
+    }
+    throw error;
+  }
 }
 
 export function hashPassword(password: string): string {

@@ -60,10 +60,12 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# IMPORTANT: Copy native modules (better-sqlite3) from builder
+# IMPORTANT: Copy native modules and seed dependencies from builder
 # Next.js standalone build doesn't automatically include all native modules
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/knex ./node_modules/knex
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/uuid ./node_modules/uuid
 
 # Copy migrations and seeds directories for database setup
 COPY --from=builder --chown=nextjs:nodejs /app/dist/migrations /app/migrations
@@ -77,9 +79,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/src/lib/db/knexfile.ts /app/src/l
 COPY --from=builder --chown=nextjs:nodejs /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # Create required directories with correct permissions
-RUN mkdir -p /app/data /app/job-outputs /app/uploads /app/logs && \
+RUN mkdir -p /app/data /app/job-outputs /app/uploads /app/logs /app/data/uploads && \
     chown -R nextjs:nodejs /app/data /app/job-outputs /app/uploads /app/logs && \
     chmod +x /app/docker-entrypoint.sh
+
+# Copy Sakila demo database (if exists)
+COPY data/uploads/sakila.db /app/data/uploads/sakila.db
 
 # Expose application port
 EXPOSE 3000
