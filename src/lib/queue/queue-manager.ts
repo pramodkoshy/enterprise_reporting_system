@@ -3,10 +3,16 @@
  * Main queue management class for BullMQ operations
  */
 
-import { Queue, Job, QueueEvents } from 'bullmq';
-import Redis from 'ioredis';
-import type { JobData, JobResult, QueueStatus, JobOptions, ScheduledJobOptions } from './types';
-import { DEFAULT_QUEUE_CONFIG, QUEUE_NAME } from './config';
+import { Queue, Job, QueueEvents } from "bullmq";
+import Redis from "ioredis";
+import type {
+  JobData,
+  JobResult,
+  QueueStatus,
+  JobOptions,
+  ScheduledJobOptions,
+} from "./types";
+import { DEFAULT_QUEUE_CONFIG, QUEUE_NAME } from "./config";
 
 let queueInstance: Queue<JobData, JobResult> | null = null;
 let queueEventsInstance: QueueEvents | null = null;
@@ -17,9 +23,13 @@ let redisConnection: Redis | null = null;
  */
 function getRedisConnection(): Redis {
   if (!redisConnection) {
-    redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-      maxRetriesPerRequest: null,
-    });
+    redisConnection = new Redis(
+      process.env.REDIS_URL || "redis://localhost:6379",
+      {
+        maxRetriesPerRequest: null,
+        lazyConnect: true,
+      },
+    );
   }
   return redisConnection;
 }
@@ -56,7 +66,7 @@ export function getQueueEvents(): QueueEvents {
  */
 export async function addJob(
   data: JobData,
-  options?: JobOptions
+  options?: JobOptions,
 ): Promise<Job<JobData, JobResult>> {
   const queue = getQueue();
   return queue.add(data.type, data, {
@@ -72,13 +82,13 @@ export async function addJob(
 export async function addScheduledJob(
   data: JobData,
   cronExpression: string,
-  options?: ScheduledJobOptions
+  options?: ScheduledJobOptions,
 ): Promise<Job<JobData, JobResult>> {
   const queue = getQueue();
   return queue.add(data.type, data, {
     repeat: {
       pattern: cronExpression,
-      tz: options?.timezone || 'UTC',
+      tz: options?.timezone || "UTC",
     },
     jobId: options?.jobId,
   });
@@ -95,7 +105,9 @@ export async function removeScheduledJob(jobId: string): Promise<boolean> {
 /**
  * Get job by ID
  */
-export async function getJob(jobId: string): Promise<Job<JobData, JobResult> | undefined> {
+export async function getJob(
+  jobId: string,
+): Promise<Job<JobData, JobResult> | undefined> {
   const queue = getQueue();
   return queue.getJob(jobId);
 }
@@ -120,9 +132,9 @@ export async function getQueueStatus(): Promise<QueueStatus> {
  * Get jobs by status
  */
 export async function getJobs(
-  status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed',
+  status: "waiting" | "active" | "completed" | "failed" | "delayed",
   start: number = 0,
-  end: number = 20
+  end: number = 20,
 ) {
   const queue = getQueue();
   return queue.getJobs([status], start, end);
@@ -133,8 +145,8 @@ export async function getJobs(
  */
 export async function cleanOldJobs(grace: number = 1000, limit: number = 1000) {
   const queue = getQueue();
-  await queue.clean(grace, limit, 'completed');
-  await queue.clean(grace, limit, 'failed');
+  await queue.clean(grace, limit, "completed");
+  await queue.clean(grace, limit, "failed");
 }
 
 /**

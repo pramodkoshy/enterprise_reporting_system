@@ -5,30 +5,49 @@ echo "========================================"
 echo "Enterprise Reporting System - Entrypoint"
 echo "========================================"
 
-# Check if database is initialized
+ensure_directories() {
+  mkdir -p /app/data /app/uploads /app/job-outputs /app/logs /app/data/uploads
+}
+
+run_migrations() {
+  echo "Running database migrations..."
+  node -e "
+    const knex = require('knex');
+    const fs = require('fs');
+    
+    const migrationsDir = fs.existsSync('/app/migrations') ? '/app/migrations' : '/app/src/lib/db/migrations';
+    const seedsDir = fs.existsSync('/app/seeds') ? '/app/seeds' : '/app/src/lib/db/seeds';
+    
+    const db = knex({
+      client: 'better-sqlite3',
+      connection: { filename: process.env.DATABASE_PATH || '/app/data/config.sqlite' },
+      useNullAsDefault: true,
+      migrations: { directory: migrationsDir },
+      seeds: { directory: seedsDir },
+      pool: {
+        afterCreate: (conn, cb) => { conn.pragma('foreign_keys = ON'); cb(); }
+      }
+    });
+    
+    db.migrate.latest()
+      .then(() => { console.log('Migrations complete'); return db.seed.run(); })
+      .then(() => { console.log('Seeds complete'); process.exit(0); })
+      .catch(e => { console.error('Migration error:', e.message); process.exit(1); });
+  "
+}
+
 if [ ! -f /app/data/.initialized ]; then
   echo "Database not initialized. Running first-time setup..."
-
-  # Ensure directories exist with correct permissions
-  mkdir -p /app/data /app/uploads /app/job-outputs /app/logs
-
-  # Run migrations
-  echo "Running database migrations..."
-  node /app/node_modules/.bin/knex migrate:latest --knexfile=/app/src/lib/db/knexfile.ts || echo "Migrations may have already run"
-
-  # Run seeds
-  echo "Running database seeds..."
-  node /app/node_modules/.bin/knex seed:run --knexfile=/app/src/lib/db/knexfile.ts || echo "Seeds may have already run"
-
-  # Mark as initialized
+  ensure_directories
+  run_migrations
   touch /app/data/.initialized
   echo "Database initialization completed!"
 else
-  echo "Database already initialized. Skipping setup."
+  echo "Database already initialized. Checking for pending migrations..."
+  run_migrations
 fi
 
 echo "Starting application..."
 echo "========================================"
 
-# Start the application as nextjs user
 exec su-exec nextjs:nodejs node server.js

@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { MultiSelect } from '@/components/ui/multi-select';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -38,47 +38,57 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
-import type { FilterDefinition, DataSource, SavedQuery, FilterFieldType, FilterOperator } from '@/types/database';
+} from "@/components/ui/table";
+import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import type {
+  FilterDefinition,
+  DataSource,
+  SavedQuery,
+  FilterFieldType,
+  FilterOperator,
+} from "@/types/database";
 
 export default function FiltersPage() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingFilter, setEditingFilter] = useState<FilterDefinition | null>(null);
-  const [availableFields, setAvailableFields] = useState<Array<{ name: string; type: string }>>([]);
+  const [editingFilter, setEditingFilter] = useState<FilterDefinition | null>(
+    null,
+  );
+  const [availableFields, setAvailableFields] = useState<
+    Array<{ name: string; type: string }>
+  >([]);
   const [isLoadingFields, setIsLoadingFields] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    query_id: '',
-    data_source_id: '',
-    filter_query: '',
+    name: "",
+    description: "",
+    query_id: "",
+    data_source_id: "",
+    filter_query: "",
     display_field: [] as string[],
-    value_field: '',
-    field_type: 'id' as FilterFieldType,
-    operator: 'in' as FilterOperator,
-    max_from_date: '',
-    min_to_date: '',
+    value_field: "",
+    field_type: "id" as FilterFieldType,
+    operator: "in" as FilterOperator,
+    max_from_date: "",
+    min_to_date: "",
   });
 
   // Fetch filters
   const { data: filters, isLoading } = useQuery({
-    queryKey: ['filters'],
+    queryKey: ["filters"],
     queryFn: async () => {
-      const res = await fetch('/api/filters');
-      if (!res.ok) throw new Error('Failed to fetch filters');
+      const res = await fetch("/api/filters");
+      if (!res.ok) throw new Error("Failed to fetch filters");
       return res.json() as Promise<FilterDefinition[]>;
     },
   });
 
   // Fetch data sources
   const { data: dataSources } = useQuery({
-    queryKey: ['data-sources'],
+    queryKey: ["data-sources"],
     queryFn: async () => {
-      const res = await fetch('/api/data-sources');
-      if (!res.ok) throw new Error('Failed to fetch data sources');
+      const res = await fetch("/api/data-sources");
+      if (!res.ok) throw new Error("Failed to fetch data sources");
       const json = await res.json();
       return json.data?.items || json;
     },
@@ -86,10 +96,10 @@ export default function FiltersPage() {
 
   // Fetch saved queries
   const { data: savedQueries } = useQuery({
-    queryKey: ['queries'],
+    queryKey: ["queries"],
     queryFn: async () => {
-      const res = await fetch('/api/queries');
-      if (!res.ok) throw new Error('Failed to fetch queries');
+      const res = await fetch("/api/queries");
+      if (!res.ok) throw new Error("Failed to fetch queries");
       const json = await res.json();
       return json.data?.items || json;
     },
@@ -98,16 +108,16 @@ export default function FiltersPage() {
   // Create filter mutation
   const createFilter = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await fetch('/api/filters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Failed to create filter');
+      if (!res.ok) throw new Error("Failed to create filter");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['filters'] });
+      queryClient.invalidateQueries({ queryKey: ["filters"] });
       setIsCreateDialogOpen(false);
       resetForm();
     },
@@ -117,15 +127,15 @@ export default function FiltersPage() {
   const updateFilter = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const res = await fetch(`/api/filters/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('Failed to update filter');
+      if (!res.ok) throw new Error("Failed to update filter");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['filters'] });
+      queryClient.invalidateQueries({ queryKey: ["filters"] });
       setIsEditDialogOpen(false);
       setEditingFilter(null);
       resetForm();
@@ -136,48 +146,64 @@ export default function FiltersPage() {
   const deleteFilter = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/filters/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!res.ok) throw new Error('Failed to delete filter');
+      if (!res.ok) throw new Error("Failed to delete filter");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['filters'] });
+      queryClient.invalidateQueries({ queryKey: ["filters"] });
     },
   });
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      query_id: '',
-      data_source_id: '',
-      filter_query: '',
+      name: "",
+      description: "",
+      query_id: "",
+      data_source_id: "",
+      filter_query: "",
       display_field: [],
-      value_field: '',
-      field_type: 'id',
-      operator: 'in',
-      max_from_date: '',
-      min_to_date: '',
+      value_field: "",
+      field_type: "id",
+      operator: "in",
+      max_from_date: "",
+      min_to_date: "",
     });
     setAvailableFields([]);
   };
 
   const handleCreate = () => {
     // Convert display_field array to comma-separated string for storage
+    // For number/date/text filters, use value_field as display_field since they don't have separate display fields
+    let displayFieldValue = Array.isArray(formData.display_field)
+      ? formData.display_field.join(", ")
+      : formData.display_field;
+
+    if (
+      formData.field_type === "number" ||
+      formData.field_type === "date" ||
+      formData.field_type === "text"
+    ) {
+      displayFieldValue = formData.value_field;
+    }
+
     const dataToSubmit = {
       ...formData,
-      display_field: Array.isArray(formData.display_field)
-        ? formData.display_field.join(', ')
-        : formData.display_field,
+      display_field: displayFieldValue,
     };
     // Build date validation config
-    if (formData.field_type === 'date' && (formData.max_from_date || formData.min_to_date)) {
+    if (
+      formData.field_type === "date" &&
+      (formData.max_from_date || formData.min_to_date)
+    ) {
       (dataToSubmit as any).date_validation_config = JSON.stringify({
         max_from_date: formData.max_from_date || undefined,
         min_to_date: formData.min_to_date || undefined,
       });
     }
+
+    console.log('[handleCreate] Submitting filter data:', JSON.stringify(dataToSubmit, null, 2));
     createFilter.mutate(dataToSubmit);
   };
 
@@ -192,7 +218,7 @@ export default function FiltersPage() {
         query_id: queryId,
         data_source_id: selectedQuery.data_source_id,
         filter_query: selectedQuery.sql_content,
-        value_field: '', // Reset value field when query changes
+        value_field: "", // Reset value field when query changes
       }));
 
       // Fetch available fields by executing the query with LIMIT 1
@@ -202,32 +228,46 @@ export default function FiltersPage() {
 
   const loadQueryFields = async (queryId: string) => {
     setIsLoadingFields(true);
+    setAvailableFields([]);
     try {
+      console.log("[loadQueryFields] Loading fields for query:", queryId);
       const res = await fetch(`/api/queries/${queryId}/execute`, {
-        method: 'POST',
+        method: "POST",
       });
+      console.log("[loadQueryFields] Response status:", res.status);
       if (res.ok) {
         const data = await res.json();
+        console.log(
+          "[loadQueryFields] Response data:",
+          JSON.stringify(data, null, 2),
+        );
         if (data.success && data.data.columns) {
-          // columns is an array of column names
           const columnNames = data.data.columns;
-          // Try to get column types if available
           const columnTypes = data.data.types || {};
 
-          // Convert to array of objects with name and type
           const fields = columnNames.map((name: string) => ({
             name,
-            type: columnTypes[name] || 'text', // Default to text if type not available
+            type: columnTypes[name] || "text",
           }));
+          console.log(
+            "[loadQueryFields] Parsed fields:",
+            JSON.stringify(fields, null, 2),
+          );
           setAvailableFields(fields);
         } else {
+          console.log(
+            "[loadQueryFields] No columns in response or not successful",
+          );
           setAvailableFields([]);
         }
       } else {
+        console.log("[loadQueryFields] Response not OK");
+        const errorText = await res.text();
+        console.log("[loadQueryFields] Error:", errorText);
         setAvailableFields([]);
       }
     } catch (error) {
-      console.error('Failed to fetch query fields:', error);
+      console.error("[loadQueryFields] Failed to fetch query fields:", error);
       setAvailableFields([]);
     } finally {
       setIsLoadingFields(false);
@@ -238,30 +278,34 @@ export default function FiltersPage() {
     setEditingFilter(filter);
 
     // Parse date validation config
-    let dateValidationConfig = { max_from_date: '', min_to_date: '' };
+    let dateValidationConfig = { max_from_date: "", min_to_date: "" };
     if (filter.date_validation_config) {
       try {
         dateValidationConfig = JSON.parse(filter.date_validation_config);
       } catch (e) {
-        console.error('Failed to parse date validation config:', e);
+        console.error("Failed to parse date validation config:", e);
       }
     }
 
     // Try to find the saved query that matches this filter's query
-    const matchingQuery = savedQueries?.find(q => q.sql_content === filter.filter_query);
+    const matchingQuery = savedQueries?.find(
+      (q) => q.sql_content === filter.filter_query,
+    );
 
     setFormData({
       name: filter.name,
-      description: filter.description || '',
-      query_id: matchingQuery?.id || '',
+      description: filter.description || "",
+      query_id: matchingQuery?.id || "",
       data_source_id: filter.data_source_id,
       filter_query: filter.filter_query,
-      display_field: Array.isArray(filter.display_field) ? filter.display_field : [filter.display_field].filter(Boolean),
+      display_field: Array.isArray(filter.display_field)
+        ? filter.display_field
+        : [filter.display_field].filter(Boolean),
       value_field: filter.value_field,
-      field_type: filter.field_type || 'id',
-      operator: filter.operator || 'in',
-      max_from_date: dateValidationConfig.max_from_date || '',
-      min_to_date: dateValidationConfig.min_to_date || '',
+      field_type: filter.field_type || "id",
+      operator: filter.operator || "in",
+      max_from_date: dateValidationConfig.max_from_date || "",
+      min_to_date: dateValidationConfig.min_to_date || "",
     });
 
     setIsEditDialogOpen(true);
@@ -275,14 +319,28 @@ export default function FiltersPage() {
   const handleUpdate = () => {
     if (editingFilter) {
       // Convert display_field array to comma-separated string for storage
+      // For number/date/text filters, use value_field as display_field since they don't have separate display fields
+      let displayFieldValue = Array.isArray(formData.display_field)
+        ? formData.display_field.join(", ")
+        : formData.display_field;
+
+      if (
+        formData.field_type === "number" ||
+        formData.field_type === "date" ||
+        formData.field_type === "text"
+      ) {
+        displayFieldValue = formData.value_field;
+      }
+
       const dataToSubmit = {
         ...formData,
-        display_field: Array.isArray(formData.display_field)
-          ? formData.display_field.join(', ')
-          : formData.display_field,
+        display_field: displayFieldValue,
       };
       // Build date validation config
-      if (formData.field_type === 'date' && (formData.max_from_date || formData.min_to_date)) {
+      if (
+        formData.field_type === "date" &&
+        (formData.max_from_date || formData.min_to_date)
+      ) {
         (dataToSubmit as any).date_validation_config = JSON.stringify({
           max_from_date: formData.max_from_date || undefined,
           min_to_date: formData.min_to_date || undefined,
@@ -293,7 +351,7 @@ export default function FiltersPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this filter?')) {
+    if (confirm("Are you sure you want to delete this filter?")) {
       deleteFilter.mutate(id);
     }
   };
@@ -363,7 +421,14 @@ export default function FiltersPage() {
                     setFormData({
                       ...formData,
                       field_type: value,
-                      operator: value === 'id' ? 'in' : value === 'date' ? 'between' : value === 'number' ? 'equals' : 'contains',
+                      operator:
+                        value === "id"
+                          ? "in"
+                          : value === "date"
+                            ? "between"
+                            : value === "number"
+                              ? "equals"
+                              : "contains",
                     });
                   }}
                 >
@@ -372,16 +437,24 @@ export default function FiltersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="id">ID (Dropdown from query)</SelectItem>
-                    <SelectItem value="number">Number (Comparison operators)</SelectItem>
+                    <SelectItem value="number">
+                      Number (Comparison operators)
+                    </SelectItem>
                     <SelectItem value="date">Date (Date range)</SelectItem>
-                    <SelectItem value="text">Text (Pattern matching)</SelectItem>
+                    <SelectItem value="text">
+                      Text (Pattern matching)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {formData.field_type === 'id' && 'Select a query to populate dropdown options in filter'}
-                  {formData.field_type === 'number' && 'Select a query to filter by numeric column'}
-                  {formData.field_type === 'date' && 'Select a query to filter by date column'}
-                  {formData.field_type === 'text' && 'Select a query to filter by text column'}
+                  {formData.field_type === "id" &&
+                    "Select a query to populate dropdown options in filter"}
+                  {formData.field_type === "number" &&
+                    "Select a query to filter by numeric column"}
+                  {formData.field_type === "date" &&
+                    "Select a query to filter by date column"}
+                  {formData.field_type === "text" &&
+                    "Select a query to filter by text column"}
                 </p>
               </div>
 
@@ -409,13 +482,15 @@ export default function FiltersPage() {
               </div>
 
               {/* ID Field Type: Display Fields and Value Field */}
-              {formData.field_type === 'id' && (
+              {formData.field_type === "id" && (
                 <div className="grid gap-4">
                   {/* Display Field - Multiple Selection */}
                   <div className="grid gap-2">
                     <Label>Display Fields (Multiple)</Label>
                     {isLoadingFields ? (
-                      <p className="text-xs text-muted-foreground">Loading fields...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Loading fields...
+                      </p>
                     ) : availableFields.length > 0 ? (
                       <MultiSelect
                         options={availableFields.map((field) => ({
@@ -431,12 +506,12 @@ export default function FiltersPage() {
                       />
                     ) : (
                       <Input
-                        value={formData.display_field.join(', ')}
+                        value={formData.display_field.join(", ")}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
                             display_field: e.target.value
-                              .split(',')
+                              .split(",")
                               .map((s) => s.trim())
                               .filter(Boolean),
                           })
@@ -445,7 +520,8 @@ export default function FiltersPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Select multiple fields to display (e.g., firstName + lastName)
+                      Select multiple fields to display (e.g., firstName +
+                      lastName)
                     </p>
                   </div>
 
@@ -453,7 +529,9 @@ export default function FiltersPage() {
                   <div className="grid gap-2">
                     <Label>Value Field</Label>
                     {isLoadingFields ? (
-                      <p className="text-xs text-muted-foreground">Loading fields...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Loading fields...
+                      </p>
                     ) : availableFields.length > 0 ? (
                       <Select
                         value={formData.value_field}
@@ -476,7 +554,10 @@ export default function FiltersPage() {
                       <Input
                         value={formData.value_field}
                         onChange={(e) =>
-                          setFormData({ ...formData, value_field: e.target.value })
+                          setFormData({
+                            ...formData,
+                            value_field: e.target.value,
+                          })
                         }
                         placeholder="e.g., id"
                       />
@@ -489,7 +570,7 @@ export default function FiltersPage() {
               )}
 
               {/* Number Field Type: Operator Selection */}
-              {formData.field_type === 'number' && (
+              {formData.field_type === "number" && (
                 <>
                   <div className="grid gap-2">
                     <Label htmlFor="operator">Operator</Label>
@@ -504,17 +585,27 @@ export default function FiltersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="equals">Equals (=)</SelectItem>
-                        <SelectItem value="less_than">Less Than (&lt;)</SelectItem>
-                        <SelectItem value="less_than_equal">Less Than or Equal (&lt;=)</SelectItem>
-                        <SelectItem value="greater_than">Greater Than (&gt;)</SelectItem>
-                        <SelectItem value="greater_than_equal">Greater Than or Equal (&gt;=)</SelectItem>
+                        <SelectItem value="less_than">
+                          Less Than (&lt;)
+                        </SelectItem>
+                        <SelectItem value="less_than_equal">
+                          Less Than or Equal (&lt;=)
+                        </SelectItem>
+                        <SelectItem value="greater_than">
+                          Greater Than (&gt;)
+                        </SelectItem>
+                        <SelectItem value="greater_than_equal">
+                          Greater Than or Equal (&gt;=)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="value_field">Numeric Column</Label>
+                    <Label htmlFor="value_field">Numeric Column *</Label>
                     {isLoadingFields ? (
-                      <p className="text-xs text-muted-foreground">Loading fields...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Loading fields... Please select a saved query first.
+                      </p>
                     ) : availableFields.length > 0 ? (
                       <Select
                         value={formData.value_field}
@@ -527,34 +618,34 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => {
-                              const type = (f.type || '').toLowerCase();
-                              return type.includes('int') ||
-                                     type.includes('number') ||
-                                     type.includes('decimal') ||
-                                     type.includes('numeric') ||
-                                     type.includes('real') ||
-                                     type.includes('double') ||
-                                     type.includes('float') ||
-                                     type.includes('bigint') ||
-                                     type.includes('smallint') ||
-                                     type.includes('tinyint');
+                            .filter((f) => {
+                              const type = (f.type || "").toLowerCase();
+                              return (
+                                type.includes("int") ||
+                                type.includes("number") ||
+                                type.includes("decimal") ||
+                                type.includes("numeric") ||
+                                type.includes("real") ||
+                                type.includes("double") ||
+                                type.includes("float") ||
+                                type.includes("bigint") ||
+                                type.includes("smallint") ||
+                                type.includes("tinyint")
+                              );
                             })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
-                                {field.name}
+                                {field.name} ({field.type})
                               </SelectItem>
                             ))}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Input
-                        value={formData.value_field}
-                        onChange={(e) =>
-                          setFormData({ ...formData, value_field: e.target.value })
-                        }
-                        placeholder="e.g., amount, price"
-                      />
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="text-xs text-amber-800">
+                          Please select a saved query above to load available numeric columns.
+                        </p>
+                      </div>
                     )}
                     <p className="text-xs text-muted-foreground">
                       The numeric database column to filter on
@@ -564,7 +655,7 @@ export default function FiltersPage() {
               )}
 
               {/* Date Field Type: Operator and Validation */}
-              {formData.field_type === 'date' && (
+              {formData.field_type === "date" && (
                 <>
                   <div className="grid gap-2">
                     <Label htmlFor="operator">Operator</Label>
@@ -578,17 +669,23 @@ export default function FiltersPage() {
                         <SelectValue placeholder="Select operator..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="between">Between (Date Range)</SelectItem>
+                        <SelectItem value="between">
+                          Between (Date Range)
+                        </SelectItem>
                         <SelectItem value="equals">Equals (=)</SelectItem>
                         <SelectItem value="less_than">Before (&lt;)</SelectItem>
-                        <SelectItem value="greater_than">After (&gt;)</SelectItem>
+                        <SelectItem value="greater_than">
+                          After (&gt;)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="value_field">Date Column</Label>
                     {isLoadingFields ? (
-                      <p className="text-xs text-muted-foreground">Loading fields...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Loading fields...
+                      </p>
                     ) : availableFields.length > 0 ? (
                       <Select
                         value={formData.value_field}
@@ -601,11 +698,13 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => {
-                              const type = (f.type || '').toLowerCase();
-                              return type.includes('date') ||
-                                     type.includes('time') ||
-                                     type.includes('timestamp');
+                            .filter((f) => {
+                              const type = (f.type || "").toLowerCase();
+                              return (
+                                type.includes("date") ||
+                                type.includes("time") ||
+                                type.includes("timestamp")
+                              );
                             })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
@@ -618,7 +717,10 @@ export default function FiltersPage() {
                       <Input
                         value={formData.value_field}
                         onChange={(e) =>
-                          setFormData({ ...formData, value_field: e.target.value })
+                          setFormData({
+                            ...formData,
+                            value_field: e.target.value,
+                          })
                         }
                         placeholder="e.g., created_at, order_date"
                       />
@@ -627,32 +729,44 @@ export default function FiltersPage() {
                       The database date column to filter on
                     </p>
                   </div>
-                  {formData.operator === 'between' && (
+                  {formData.operator === "between" && (
                     <div className="border rounded-md p-3 bg-muted/50">
-                      <Label className="text-sm font-medium">Date Validation (Optional)</Label>
+                      <Label className="text-sm font-medium">
+                        Date Validation (Optional)
+                      </Label>
                       <p className="text-xs text-muted-foreground mb-2">
                         Limit the date range users can select
                       </p>
                       <div className="grid gap-2">
                         <div>
-                          <Label htmlFor="max_from_date" className="text-xs">From Date Must Be Before/Equal To</Label>
+                          <Label htmlFor="max_from_date" className="text-xs">
+                            From Date Must Be Before/Equal To
+                          </Label>
                           <Input
                             id="max_from_date"
                             type="date"
                             value={formData.max_from_date}
                             onChange={(e) =>
-                              setFormData({ ...formData, max_from_date: e.target.value })
+                              setFormData({
+                                ...formData,
+                                max_from_date: e.target.value,
+                              })
                             }
                           />
                         </div>
                         <div>
-                          <Label htmlFor="min_to_date" className="text-xs">To Date Must Be After/Equal To</Label>
+                          <Label htmlFor="min_to_date" className="text-xs">
+                            To Date Must Be After/Equal To
+                          </Label>
                           <Input
                             id="min_to_date"
                             type="date"
                             value={formData.min_to_date}
                             onChange={(e) =>
-                              setFormData({ ...formData, min_to_date: e.target.value })
+                              setFormData({
+                                ...formData,
+                                min_to_date: e.target.value,
+                              })
                             }
                           />
                         </div>
@@ -663,7 +777,7 @@ export default function FiltersPage() {
               )}
 
               {/* Text Field Type: Operator Selection with Warning */}
-              {formData.field_type === 'text' && (
+              {formData.field_type === "text" && (
                 <>
                   <div className="grid gap-2">
                     <Label htmlFor="operator">Operator</Label>
@@ -685,7 +799,9 @@ export default function FiltersPage() {
                   <div className="grid gap-2">
                     <Label htmlFor="value_field">Text Column</Label>
                     {isLoadingFields ? (
-                      <p className="text-xs text-muted-foreground">Loading fields...</p>
+                      <p className="text-xs text-muted-foreground">
+                        Loading fields...
+                      </p>
                     ) : availableFields.length > 0 ? (
                       <Select
                         value={formData.value_field}
@@ -698,27 +814,31 @@ export default function FiltersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableFields
-                            .filter(f => {
-                              const type = (f.type || '').toLowerCase();
+                            .filter((f) => {
+                              const type = (f.type || "").toLowerCase();
                               // Include columns that are explicitly text types
-                              const isTextType = type.includes('text') ||
-                                               type.includes('char') ||
-                                               type.includes('varchar') ||
-                                               type.includes('string');
+                              const isTextType =
+                                type.includes("text") ||
+                                type.includes("char") ||
+                                type.includes("varchar") ||
+                                type.includes("string");
                               // Include columns with unknown type (often text by default)
-                              const isUnknownType = type === '';
+                              const isUnknownType = type === "";
                               // Exclude numeric, date, and boolean columns
-                              const isNonText = type.includes('int') ||
-                                              type.includes('number') ||
-                                              type.includes('decimal') ||
-                                              type.includes('numeric') ||
-                                              type.includes('real') ||
-                                              type.includes('double') ||
-                                              type.includes('float') ||
-                                              type.includes('date') ||
-                                              type.includes('time') ||
-                                              type.includes('bool');
-                              return (isTextType || isUnknownType) && !isNonText;
+                              const isNonText =
+                                type.includes("int") ||
+                                type.includes("number") ||
+                                type.includes("decimal") ||
+                                type.includes("numeric") ||
+                                type.includes("real") ||
+                                type.includes("double") ||
+                                type.includes("float") ||
+                                type.includes("date") ||
+                                type.includes("time") ||
+                                type.includes("bool");
+                              return (
+                                (isTextType || isUnknownType) && !isNonText
+                              );
                             })
                             .map((field) => (
                               <SelectItem key={field.name} value={field.name}>
@@ -731,7 +851,10 @@ export default function FiltersPage() {
                       <Input
                         value={formData.value_field}
                         onChange={(e) =>
-                          setFormData({ ...formData, value_field: e.target.value })
+                          setFormData({
+                            ...formData,
+                            value_field: e.target.value,
+                          })
                         }
                         placeholder="e.g., customer_name, email"
                       />
@@ -745,7 +868,8 @@ export default function FiltersPage() {
                     <div className="text-sm text-amber-800">
                       <p className="font-medium">Performance Warning</p>
                       <p className="text-xs">
-                        Text filters (contains, starts with) prevent index usage and will result in slow queries on large datasets.
+                        Text filters (contains, starts with) prevent index usage
+                        and will result in slow queries on large datasets.
                       </p>
                     </div>
                   </div>
@@ -760,7 +884,7 @@ export default function FiltersPage() {
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={createFilter.isPending}>
-                {createFilter.isPending ? 'Creating...' : 'Create Filter'}
+                {createFilter.isPending ? "Creating..." : "Create Filter"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -784,7 +908,10 @@ export default function FiltersPage() {
           <TableBody>
             {filters?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={7}
+                  className="text-center text-muted-foreground"
+                >
                   No filters found. Create your first filter to get started.
                 </TableCell>
               </TableRow>
@@ -793,11 +920,11 @@ export default function FiltersPage() {
                 <TableRow key={filter.id}>
                   <TableCell className="font-medium">{filter.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {filter.description || '-'}
+                    {filter.description || "-"}
                   </TableCell>
                   <TableCell>
-                    {dataSources?.find((ds) => ds.id === filter.data_source_id)?.name ||
-                      filter.data_source_id}
+                    {dataSources?.find((ds) => ds.id === filter.data_source_id)
+                      ?.name || filter.data_source_id}
                   </TableCell>
                   <TableCell>
                     <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
@@ -888,7 +1015,8 @@ export default function FiltersPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Select a saved query. The data source and SQL will be auto-filled.
+                Select a saved query. The data source and SQL will be
+                auto-filled.
               </p>
             </div>
 
@@ -897,7 +1025,9 @@ export default function FiltersPage() {
               <div className="grid gap-2">
                 <Label>Display Fields (Multiple)</Label>
                 {isLoadingFields ? (
-                  <p className="text-xs text-muted-foreground">Loading fields...</p>
+                  <p className="text-xs text-muted-foreground">
+                    Loading fields...
+                  </p>
                 ) : availableFields.length > 0 ? (
                   <MultiSelect
                     options={availableFields.map((field) => ({
@@ -913,12 +1043,16 @@ export default function FiltersPage() {
                   />
                 ) : (
                   <Input
-                    value={Array.isArray(formData.display_field) ? formData.display_field.join(', ') : formData.display_field}
+                    value={
+                      Array.isArray(formData.display_field)
+                        ? formData.display_field.join(", ")
+                        : formData.display_field
+                    }
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         display_field: e.target.value
-                          .split(',')
+                          .split(",")
                           .map((s) => s.trim())
                           .filter(Boolean),
                       })
@@ -975,7 +1109,7 @@ export default function FiltersPage() {
               Cancel
             </Button>
             <Button onClick={handleUpdate} disabled={updateFilter.isPending}>
-              {updateFilter.isPending ? 'Updating...' : 'Update Filter'}
+              {updateFilter.isPending ? "Updating..." : "Update Filter"}
             </Button>
           </DialogFooter>
         </DialogContent>

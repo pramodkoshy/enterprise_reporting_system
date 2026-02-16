@@ -1,0 +1,65 @@
+# Enterprise Reporting System - Docker Compose for Local Development
+# Simplified setup without Nginx/Certbot for local testing
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ers-local-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - ${DATA_PATH:-./.docker-data}/redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ers-local-network
+
+  app:
+    image: enterprise-reporting-system:latest
+    container_name: ers-local-app
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      PORT: 3000
+      AUTH_SECRET: ${AUTH_SECRET:-local-dev-secret-change-in-production}
+      AUTH_URL: http://localhost:3001
+      DATABASE_PATH: /app/data/config.sqlite
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      JOB_OUTPUT_PATH: /app/job-outputs
+      MAX_CONCURRENT_JOBS: 5
+      NEXT_PUBLIC_ERROR_REPORTING_EMAIL: admin@localhost
+      DEFAULT_PAGE_SIZE: 50
+      MAX_PAGE_SIZE: 1000
+      DATA_TABLE_PAGE_SIZE: 100
+      EXPORT_PAGE_SIZE: 1000
+      VIRTUAL_SCROLL_THRESHOLD: 500
+      ENABLE_VIRTUAL_SCROLLING: true
+    volumes:
+      - ${DATA_PATH:-./.docker-data}/app/data:/app/data
+      - ${DATA_PATH:-./.docker-data}/app/job-outputs:/app/job-outputs
+      - ${DATA_PATH:-./.docker-data}/app/uploads:/app/uploads
+      - ${DATA_PATH:-./.docker-data}/app/logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ers-local-network
+
+networks:
+  ers-local-network:
+    driver: bridge
