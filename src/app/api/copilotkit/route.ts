@@ -1,0 +1,21 @@
+import {
+  CopilotRuntime,
+  copilotRuntimeNextJSAppRouterEndpoint,
+  OpenAIAdapter,
+} from '@copilotkit/runtime';
+import { NextRequest } from 'next/server';
+
+const serviceAdapter = new OpenAIAdapter({
+  model: process.env.OPENAI_MODEL || 'gpt-4o',
+});
+
+const runtime = new CopilotRuntime();
+
+export const POST = async (req: NextRequest) => {
+  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+    runtime,
+    serviceAdapter,
+    endpoint: '/api/copilotkit',
+  });
+  return handleRequest(req);
+};
