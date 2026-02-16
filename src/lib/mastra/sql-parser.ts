@@ -6,7 +6,14 @@
 
 import { Parser } from 'node-sql-parser';
 import { CharStream } from 'antlr4ng';
-import type { ParsedSqlEntity, AccessCheckDetail } from '@/types/database';
+import type {
+  ParsedSqlEntity,
+  AccessCheckDetail,
+  SqlAstNode,
+  SqlFromItem,
+  SqlTableRef,
+  SqlExpression,
+} from '@/types/database';
 import { checkEntityAccess } from '@/lib/permissions/ds-rbac';
 
 const sqlParser = new Parser();
@@ -27,7 +34,7 @@ export function extractEntitiesFromSql(sql: string, dialect: string = 'sqlite'):
     const astArray = Array.isArray(ast) ? ast : [ast];
 
     for (const statement of astArray) {
-      collectEntitiesFromAst(statement as any, entities, seen);
+      collectEntitiesFromAst(statement as unknown as SqlAstNode, entities, seen);
     }
   } catch (parseError) {
     // Fallback: use regex-based extraction if parser fails
@@ -54,11 +61,10 @@ function mapDialect(dialect: string): string {
 
 /**
  * Recursively collect entity references from an AST node.
- * Uses 'any' typing for AST traversal since node-sql-parser's
- * TypeScript definitions don't fully cover all node shapes.
+ * Uses typed interfaces that match node-sql-parser's actual runtime AST shapes.
  */
 function collectEntitiesFromAst(
-  node: any,
+  node: SqlAstNode,
   entities: ParsedSqlEntity[],
   seen: Set<string>
 ): void {
@@ -69,18 +75,18 @@ function collectEntitiesFromAst(
     // Process FROM clause
     if (node.from && Array.isArray(node.from)) {
       for (const fromItem of node.from) {
-        processFromItem(fromItem, entities, seen);
+        processFromItem(fromItem as SqlFromItem, entities, seen);
       }
     }
 
     // Process WHERE subqueries
     if (node.where) {
-      processExpressionForSubqueries(node.where, entities, seen);
+      processExpressionForSubqueries(node.where as SqlExpression, entities, seen);
     }
 
     // Process HAVING subqueries
     if (node.having) {
-      processExpressionForSubqueries(node.having, entities, seen);
+      processExpressionForSubqueries(node.having as SqlExpression, entities, seen);
     }
   }
 
@@ -88,8 +94,8 @@ function collectEntitiesFromAst(
   if (node.table) {
     const tables = Array.isArray(node.table) ? node.table : [node.table];
     for (const t of tables) {
-      if (t && typeof t === 'object' && t.table) {
-        addEntity(t, entities, seen);
+      if (t && typeof t === 'object' && (t as SqlTableRef).table) {
+        addEntity(t as SqlTableRef, entities, seen);
       }
     }
   }
@@ -101,7 +107,7 @@ function collectEntitiesFromAst(
 }
 
 function processFromItem(
-  item: any,
+  item: SqlFromItem,
   entities: ParsedSqlEntity[],
   seen: Set<string>
 ): void {
@@ -140,7 +146,7 @@ function processFromItem(
 }
 
 function addEntity(
-  tableExpr: any,
+  tableExpr: SqlTableRef,
   entities: ParsedSqlEntity[],
   seen: Set<string>
 ): void {
@@ -159,14 +165,14 @@ function addEntity(
 }
 
 function processExpressionForSubqueries(
-  expr: any,
+  expr: SqlExpression,
   entities: ParsedSqlEntity[],
   seen: Set<string>
 ): void {
   if (!expr || typeof expr !== 'object') return;
 
   if (expr.type === 'select') {
-    collectEntitiesFromAst(expr, entities, seen);
+    collectEntitiesFromAst(expr as SqlAstNode, entities, seen);
     return;
   }
 
@@ -176,10 +182,12 @@ function processExpressionForSubqueries(
     if (value && typeof value === 'object') {
       if (Array.isArray(value)) {
         for (const item of value) {
-          processExpressionForSubqueries(item, entities, seen);
+          if (item && typeof item === 'object') {
+            processExpressionForSubqueries(item as SqlExpression, entities, seen);
+          }
         }
       } else {
-        processExpressionForSubqueries(value, entities, seen);
+        processExpressionForSubqueries(value as SqlExpression, entities, seen);
       }
     }
   }
@@ -273,11 +281,13 @@ export function validateSqlTokens(sql: string): { valid: boolean; errors: string
     // Additional validation using node-sql-parser
     try {
       sqlParser.astify(sql, { database: 'SQLite' });
-    } catch (parseError: any) {
-      errors.push(`SQL parse error: ${parseError.message || String(parseError)}`);
+    } catch (parseError: unknown) {
+      const message = parseError instanceof Error ? parseError.message : String(parseError);
+      errors.push(`SQL parse error: ${message}`);
     }
-  } catch (error: any) {
-    errors.push(`Tokenization error: ${error.message || String(error)}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    errors.push(`Tokenization error: ${message}`);
   }
 
   return {

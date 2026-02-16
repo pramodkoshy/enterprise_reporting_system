@@ -32,19 +32,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import {
   Plus,
   Trash2,
   Shield,
   Users,
-  Database,
   ArrowLeft,
   Loader2,
   Table as TableIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DsRole, DsEntityPermission, DsEntityPermissionLevel, DsEntityType } from '@/types/database';
+import type { DsRole, DsEntityPermission, DsEntityPermissionLevel, DsEntityType, DsUserRoleJoinRow, SchemaApiResponse, UserListItem, DataSource } from '@/types/database';
 
 const PERMISSION_LEVELS: { value: DsEntityPermissionLevel; label: string }[] = [
   { value: 'select', label: 'Select (Read)' },
@@ -80,7 +78,7 @@ export default function DataSourcePermissionsPage() {
   const [permRoleId, setPermRoleId] = useState('');
 
   // Fetch data source info
-  const { data: dataSource } = useQuery({
+  const { data: dataSource } = useQuery<DataSource>({
     queryKey: ['data-source', dataSourceId],
     queryFn: async () => {
       const res = await fetch(`/api/data-sources/${dataSourceId}`);
@@ -100,7 +98,7 @@ export default function DataSourcePermissionsPage() {
   });
 
   // Fetch DS user-role assignments
-  const { data: userRoles = [], isLoading: userRolesLoading } = useQuery({
+  const { data: userRoles = [], isLoading: userRolesLoading } = useQuery<DsUserRoleJoinRow[]>({
     queryKey: ['ds-user-roles', dataSourceId],
     queryFn: async () => {
       const res = await fetch(`/api/data-sources/${dataSourceId}/user-roles`);
@@ -123,7 +121,7 @@ export default function DataSourcePermissionsPage() {
   });
 
   // Fetch schema for entity name autocomplete
-  const { data: schemaData } = useQuery({
+  const { data: schemaData } = useQuery<SchemaApiResponse>({
     queryKey: ['ds-schema', dataSourceId],
     queryFn: async () => {
       const res = await fetch(`/api/sql/schema/${dataSourceId}`);
@@ -133,7 +131,7 @@ export default function DataSourcePermissionsPage() {
   });
 
   // Fetch users for assignment
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<UserListItem[]>({
     queryKey: ['users-list'],
     queryFn: async () => {
       const res = await fetch('/api/admin/users');
@@ -285,8 +283,8 @@ export default function DataSourcePermissionsPage() {
     },
   });
 
-  const entityNames = schemaData?.tables?.map((t: { name: string }) => t.name) || [];
-  const viewNames = schemaData?.views?.map((v: { name: string }) => v.name) || [];
+  const entityNames = schemaData?.tables?.map((t) => t.name) || [];
+  const viewNames = schemaData?.views?.map((v) => v.name) || [];
 
   return (
     <div className="space-y-6">
@@ -412,7 +410,7 @@ export default function DataSourcePermissionsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {userRoles.map((ur: { user_id: string; ds_role_id: string; user_display_name?: string; user_email?: string; role_name?: string }) => (
+                    {userRoles.map((ur: DsUserRoleJoinRow) => (
                       <TableRow key={`${ur.user_id}-${ur.ds_role_id}`}>
                         <TableCell className="font-medium">{ur.user_display_name}</TableCell>
                         <TableCell>{ur.user_email}</TableCell>
@@ -595,7 +593,7 @@ export default function DataSourcePermissionsPage() {
                   <SelectValue placeholder="Select user" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((u: { id: string; display_name: string; email: string }) => (
+                  {users.map((u: UserListItem) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.display_name} ({u.email})
                     </SelectItem>

@@ -171,7 +171,7 @@ test.describe('Data Source RBAC API @batch6', () => {
       headers: { Cookie: authCookie },
     });
     const usersData = await usersResponse.json();
-    const adminUser = usersData.data?.find((u: any) => u.email === 'admin@admin.com');
+    const adminUser = usersData.data?.find((u: { id: string; email: string }) => u.email === 'admin@admin.com');
 
     if (adminUser) {
       const response = await request.post(`/api/data-sources/${dataSourceId}/user-roles`, {

@@ -584,3 +584,118 @@ export interface NlQueryPipelineResult {
   };
   error?: string;
 }
+
+// Data source user-role join result (from Knex JOIN query)
+export interface DsUserRoleJoinRow extends DsUserRole {
+  user_email?: string;
+  user_display_name?: string;
+  role_name?: string;
+}
+
+// Knex join result for user roles with permissions
+export interface UserRolePermissionRow {
+  permissions: string;
+}
+
+// Knex join result for DS user roles with role info
+export interface DsUserRoleWithRoleInfo {
+  role_id: string;
+  role_name: string;
+}
+
+// Frontend API response shapes for NL Query workspace
+export interface DataSourceListItem {
+  id: string;
+  name: string;
+  client_type: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface SchemaOverviewResponse {
+  tableCount: number;
+  viewCount: number;
+  tables: SchemaTableSummary[];
+  schemaTextLength: number;
+}
+
+export interface SchemaTableSummary {
+  name: string;
+  columnCount: number;
+  columns: SchemaColumnSummary[];
+}
+
+export interface SchemaColumnSummary {
+  name: string;
+  type: string;
+}
+
+export interface QueryHistoryEntry {
+  id: string;
+  data_source_id: string;
+  user_id: string;
+  natural_language_query: string;
+  generated_sql?: string;
+  parsed_entities?: string;
+  access_check_result: NlAccessCheckResult;
+  access_check_details?: string;
+  execution_result?: string;
+  error_message?: string;
+  execution_time_ms?: number;
+  created_at: string;
+}
+
+// Chart configuration for NL results visualization
+export interface NlChartConfig {
+  chartType: 'bar' | 'line' | 'area' | 'pie' | 'scatter';
+  title: string;
+  xAxis: { field: string; label: string };
+  yAxis: { field: string; label: string }[];
+  colors?: string[];
+}
+
+// SQL AST node types for sql-parser.ts traversal
+// These match the actual runtime shapes from node-sql-parser's AST output
+export interface SqlAstNode {
+  type?: string;
+  from?: SqlFromItem[];
+  where?: SqlExpression;
+  having?: SqlExpression;
+  table?: SqlTableRef[] | SqlTableRef;
+  _next?: SqlAstNode;
+  [key: string]: unknown;
+}
+
+export interface SqlFromItem {
+  table?: string;
+  db?: string;
+  as?: string;
+  expr?: SqlAstNode;
+  [key: string]: unknown;
+}
+
+export interface SqlTableRef {
+  table?: string;
+  db?: string;
+  as?: string;
+  [key: string]: unknown;
+}
+
+export interface SqlExpression {
+  type?: string;
+  [key: string]: unknown;
+}
+
+// Schema data response from existing schema API
+export interface SchemaApiResponse {
+  tables: { name: string; columns: SchemaColumnSummary[] }[];
+  views?: { name: string; columns: SchemaColumnSummary[] }[];
+}
+
+// User list item (for admin user listing in permissions page)
+export interface UserListItem {
+  id: string;
+  email: string;
+  display_name: string;
+  is_active: boolean;
+}

@@ -20,18 +20,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-
-interface ChartConfig {
-  chartType: 'bar' | 'line' | 'area' | 'pie' | 'scatter';
-  title: string;
-  xAxis: { field: string; label: string };
-  yAxis: { field: string; label: string }[];
-  colors?: string[];
-}
+import type { NlChartConfig } from '@/types/database';
 
 interface NlResultsChartProps {
   data: Record<string, unknown>[];
-  config: ChartConfig;
+  config: NlChartConfig;
 }
 
 const DEFAULT_COLORS = [

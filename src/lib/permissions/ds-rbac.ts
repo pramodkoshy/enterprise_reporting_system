@@ -2,10 +2,13 @@ import { getDb } from '@/lib/db/config';
 import type {
   DsRole,
   DsUserRole,
+  DsUserRoleJoinRow,
   DsEntityPermission,
   DsEntityPermissionLevel,
   ParsedSqlEntity,
   AccessCheckDetail,
+  UserRolePermissionRow,
+  DsUserRoleWithRoleInfo,
 } from '@/types/database';
 
 /**
@@ -79,7 +82,7 @@ export async function deleteDsRole(roleId: string): Promise<void> {
 /**
  * Get all user-role assignments for a data source
  */
-export async function getDsUserRoles(dataSourceId: string): Promise<(DsUserRole & { user_email?: string; user_display_name?: string; role_name?: string })[]> {
+export async function getDsUserRoles(dataSourceId: string): Promise<DsUserRoleJoinRow[]> {
   const db = getDb();
   return db('ds_user_roles')
     .join('users', 'ds_user_roles.user_id', 'users.id')
@@ -90,7 +93,7 @@ export async function getDsUserRoles(dataSourceId: string): Promise<(DsUserRole 
       'users.email as user_email',
       'users.display_name as user_display_name',
       'ds_roles.name as role_name'
-    );
+    ) as Promise<DsUserRoleJoinRow[]>;
 }
 
 /**
@@ -222,12 +225,12 @@ export async function checkEntityAccess(
   const db = getDb();
 
   // First check if user is a system admin
-  const userRoles = await db('user_roles')
+  const userRoles: UserRolePermissionRow[] = await db('user_roles')
     .join('roles', 'user_roles.role_id', 'roles.id')
     .where('user_roles.user_id', userId)
     .select('roles.permissions');
 
-  const isSystemAdmin = userRoles.some((r) => {
+  const isSystemAdmin = userRoles.some((r: UserRolePermissionRow) => {
     const perms: string[] = JSON.parse(r.permissions);
     return perms.includes('admin:*');
   });
@@ -243,7 +246,7 @@ export async function checkEntityAccess(
   }
 
   // Get user's DS roles for this data source
-  const dsUserRoles = await db('ds_user_roles')
+  const dsUserRoles: DsUserRoleWithRoleInfo[] = await db('ds_user_roles')
     .join('ds_roles', 'ds_user_roles.ds_role_id', 'ds_roles.id')
     .where('ds_user_roles.data_source_id', dataSourceId)
     .where('ds_user_roles.user_id', userId)
@@ -258,7 +261,7 @@ export async function checkEntityAccess(
     }));
   }
 
-  const roleIds = dsUserRoles.map((r: { role_id: string }) => r.role_id);
+  const roleIds = dsUserRoles.map((r: DsUserRoleWithRoleInfo) => r.role_id);
 
   // Get all entity permissions for user's DS roles
   const permissions = await db<DsEntityPermission>('ds_entity_permissions')
@@ -306,8 +309,8 @@ export async function checkEntityAccess(
       }
     }
 
-    const grantingRole = dsUserRoles.find((r: { role_id: string }) => r.role_id === bestPerm.ds_role_id);
-    const columnRestrictions = bestPerm.column_restrictions
+    const grantingRole = dsUserRoles.find((r: DsUserRoleWithRoleInfo) => r.role_id === bestPerm.ds_role_id);
+    const columnRestrictions: string[] | undefined = bestPerm.column_restrictions
       ? JSON.parse(bestPerm.column_restrictions)
       : undefined;
 
@@ -333,12 +336,12 @@ export async function getUserAccessibleEntities(
   const db = getDb();
 
   // Check system admin
-  const userRoles = await db('user_roles')
+  const userRoles: UserRolePermissionRow[] = await db('user_roles')
     .join('roles', 'user_roles.role_id', 'roles.id')
     .where('user_roles.user_id', userId)
     .select('roles.permissions');
 
-  const isSystemAdmin = userRoles.some((r) => {
+  const isSystemAdmin = userRoles.some((r: UserRolePermissionRow) => {
     const perms: string[] = JSON.parse(r.permissions);
     return perms.includes('admin:*');
   });
@@ -349,7 +352,7 @@ export async function getUserAccessibleEntities(
   }
 
   // Get user's DS roles
-  const dsRoleIds = await db('ds_user_roles')
+  const dsRoleIds: string[] = await db('ds_user_roles')
     .join('ds_roles', 'ds_user_roles.ds_role_id', 'ds_roles.id')
     .where('ds_user_roles.data_source_id', dataSourceId)
     .where('ds_user_roles.user_id', userId)

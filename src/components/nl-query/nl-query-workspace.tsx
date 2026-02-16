@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core';
 import { CopilotSidebar } from '@copilotkit/react-ui';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,17 +30,26 @@ import {
 import { toast } from 'sonner';
 import { NlResultsTable } from './nl-results-table';
 import { NlResultsChart } from './nl-results-chart';
-import type { NlQueryPipelineResult, AccessCheckDetail } from '@/types/database';
+import type {
+  NlQueryPipelineResult,
+  AccessCheckDetail,
+  DataSourceListItem,
+  SchemaOverviewResponse,
+  SchemaTableSummary,
+  QueryHistoryEntry,
+  NlChartConfig,
+  SchemaColumnSummary,
+} from '@/types/database';
 
 export function NlQueryWorkspace() {
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>('');
   const [queryResult, setQueryResult] = useState<NlQueryPipelineResult | null>(null);
-  const [chartConfig, setChartConfig] = useState<any>(null);
+  const [chartConfig, setChartConfig] = useState<NlChartConfig | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState('results');
 
   // Fetch active data sources
-  const { data: dataSources = [] } = useQuery({
+  const { data: dataSources = [] } = useQuery<DataSourceListItem[]>({
     queryKey: ['active-data-sources'],
     queryFn: async () => {
       const res = await fetch('/api/data-sources/active');
@@ -50,7 +59,7 @@ export function NlQueryWorkspace() {
   });
 
   // Fetch schema when data source is selected
-  const { data: schemaInfo, isLoading: schemaLoading, refetch: refetchSchema } = useQuery({
+  const { data: schemaInfo, isLoading: schemaLoading, refetch: refetchSchema } = useQuery<SchemaOverviewResponse>({
     queryKey: ['nl-schema', selectedDataSourceId],
     queryFn: async () => {
       const res = await fetch('/api/nl-query/schema', {
@@ -65,7 +74,7 @@ export function NlQueryWorkspace() {
   });
 
   // Fetch query history
-  const { data: queryHistory = [] } = useQuery({
+  const { data: queryHistory = [] } = useQuery<QueryHistoryEntry[]>({
     queryKey: ['nl-query-history', selectedDataSourceId],
     queryFn: async () => {
       const url = selectedDataSourceId
@@ -82,13 +91,13 @@ export function NlQueryWorkspace() {
     description: 'Currently selected data source and its schema information for natural language SQL queries',
     value: {
       selectedDataSourceId,
-      selectedDataSourceName: dataSources.find((ds: any) => ds.id === selectedDataSourceId)?.name,
+      selectedDataSourceName: dataSources.find((ds: DataSourceListItem) => ds.id === selectedDataSourceId)?.name,
       schemaInfo: schemaInfo ? {
         tableCount: schemaInfo.tableCount,
         viewCount: schemaInfo.viewCount,
-        tables: schemaInfo.tables?.map((t: any) => ({
+        tables: schemaInfo.tables?.map((t: SchemaTableSummary) => ({
           name: t.name,
-          columns: t.columns?.map((c: any) => `${c.name} (${c.type})`).join(', '),
+          columns: t.columns?.map((c: SchemaColumnSummary) => `${c.name} (${c.type})`).join(', '),
         })),
       } : null,
       lastQueryResult: queryResult ? {
@@ -127,21 +136,23 @@ export function NlQueryWorkspace() {
         );
       }
 
-      if (result?.error) {
+      const typedResult = result as NlQueryPipelineResult | { error: string } | undefined;
+      if (typedResult && 'error' in typedResult && typedResult.error) {
         return (
           <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg">
             <XCircle className="h-4 w-4" />
-            <span className="text-sm">{result.error}</span>
+            <span className="text-sm">{typedResult.error}</span>
           </div>
         );
       }
 
+      const pipelineResult = typedResult as NlQueryPipelineResult | undefined;
       return (
         <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <span className="text-sm">
-            Query returned {result?.queryResults?.totalRows || 0} rows in{' '}
-            {result?.queryResults?.executionTimeMs || 0}ms. View results in the table below.
+            Query returned {pipelineResult?.queryResults?.totalRows || 0} rows in{' '}
+            {pipelineResult?.queryResults?.executionTimeMs || 0}ms. View results in the table below.
           </span>
         </div>
       );
@@ -172,9 +183,9 @@ export function NlQueryWorkspace() {
           return { error: errorMsg };
         }
 
-        setQueryResult(json.data);
+        setQueryResult(json.data as NlQueryPipelineResult);
         setActiveTab('results');
-        return json.data;
+        return json.data as NlQueryPipelineResult;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         return { error: errorMsg };
@@ -214,7 +225,7 @@ export function NlQueryWorkspace() {
         required: true,
       },
     ],
-    render: ({ status, result }) => {
+    render: ({ status }) => {
       if (status !== 'complete') {
         return (
           <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
@@ -238,8 +249,8 @@ export function NlQueryWorkspace() {
 
       const yFields = yAxisFields.split(',').map((f: string) => f.trim());
 
-      const config = {
-        chartType,
+      const config: NlChartConfig = {
+        chartType: chartType as NlChartConfig['chartType'],
         title,
         xAxis: { field: xAxisField, label: xAxisField },
         yAxis: yFields.map((f: string) => ({ field: f, label: f })),
@@ -271,7 +282,7 @@ export function NlQueryWorkspace() {
       const json = await res.json();
       await refetchSchema();
       toast.success('Schema refreshed');
-      return json.data;
+      return json.data as SchemaOverviewResponse;
     },
   });
 
@@ -290,7 +301,7 @@ export function NlQueryWorkspace() {
     }
   };
 
-  const selectedDs = dataSources.find((ds: any) => ds.id === selectedDataSourceId);
+  const selectedDs = dataSources.find((ds: DataSourceListItem) => ds.id === selectedDataSourceId);
 
   return (
     <CopilotSidebar
@@ -340,7 +351,7 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
                   <SelectValue placeholder="Select a data source" />
                 </SelectTrigger>
                 <SelectContent>
-                  {dataSources.map((ds: any) => (
+                  {dataSources.map((ds: DataSourceListItem) => (
                     <SelectItem key={ds.id} value={ds.id}>
                       {ds.name} ({ds.client_type})
                     </SelectItem>
@@ -368,7 +379,7 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
               <div className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">Available tables:</p>
                 <div className="flex flex-wrap gap-1">
-                  {schemaInfo.tables.map((t: any) => (
+                  {schemaInfo.tables.map((t: SchemaTableSummary) => (
                     <Badge key={t.name} variant="outline" className="text-xs font-mono">
                       {t.name} ({t.columnCount} cols)
                     </Badge>
@@ -503,7 +514,7 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {queryHistory.slice(0, 10).map((h: any) => (
+                {queryHistory.slice(0, 10).map((h: QueryHistoryEntry) => (
                   <div
                     key={h.id}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
