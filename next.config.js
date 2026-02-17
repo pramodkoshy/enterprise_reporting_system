@@ -15,7 +15,7 @@ const nextConfig = {
   },
 
   experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3', 'knex'],
+    serverComponentsExternalPackages: ['better-sqlite3', 'knex', '@mastra/core', '@copilotkit/runtime', 'antlr4ng'],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

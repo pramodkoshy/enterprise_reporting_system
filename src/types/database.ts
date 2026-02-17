@@ -445,7 +445,10 @@ export type ResourceType =
   | 'job'
   | 'queue'
   | 'user'
-  | 'role';
+  | 'role'
+  | 'ds_role'
+  | 'ds_entity_permission'
+  | 'nl_query';
 
 export type PermissionLevel = 'view' | 'edit' | 'execute' | 'admin';
 
@@ -481,4 +484,218 @@ export interface AuditLog {
   ip_address?: string;
   user_agent?: string;
   created_at: string;
+}
+
+// Data Source RBAC Types
+export type DsEntityPermissionLevel = 'select' | 'insert' | 'update' | 'delete' | 'all';
+export type DsEntityType = 'table' | 'view';
+export type NlAccessCheckResult = 'granted' | 'denied' | 'pending' | 'error';
+
+export interface DsRole {
+  id: string;
+  data_source_id: string;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DsUserRole {
+  data_source_id: string;
+  user_id: string;
+  ds_role_id: string;
+  assigned_at: string;
+}
+
+export interface DsEntityPermission {
+  id: string;
+  data_source_id: string;
+  ds_role_id: string;
+  entity_name: string;
+  entity_type: DsEntityType;
+  entity_schema?: string;
+  permission_level: DsEntityPermissionLevel;
+  column_restrictions?: string; // JSON array of allowed columns
+  row_filter?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DsSchemaCache {
+  id: string;
+  data_source_id: string;
+  schema_metadata: string; // JSON
+  sample_data?: string; // JSON
+  embedding_data?: string; // JSON
+  last_introspected_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NlQueryHistory {
+  id: string;
+  data_source_id: string;
+  user_id: string;
+  natural_language_query: string;
+  generated_sql?: string;
+  parsed_entities?: string; // JSON
+  access_check_result: NlAccessCheckResult;
+  access_check_details?: string; // JSON
+  execution_result?: string; // JSON
+  error_message?: string;
+  execution_time_ms?: number;
+  created_at: string;
+}
+
+// Parsed SQL entity reference (from ANTLR parsing)
+export interface ParsedSqlEntity {
+  name: string;
+  schema?: string;
+  alias?: string;
+  type: 'table' | 'view' | 'subquery';
+}
+
+// Access check result detail
+export interface AccessCheckDetail {
+  entity: string;
+  entitySchema?: string;
+  hasAccess: boolean;
+  grantedBy?: string; // role name that grants access
+  permissionLevel?: DsEntityPermissionLevel;
+  columnRestrictions?: string[];
+  rowFilter?: string;
+}
+
+// NL Query execution pipeline result
+export interface NlQueryPipelineResult {
+  naturalLanguageQuery: string;
+  generatedSql: string;
+  parsedEntities: ParsedSqlEntity[];
+  accessCheckResults: AccessCheckDetail[];
+  accessGranted: boolean;
+  queryResults?: {
+    columns: string[];
+    rows: Record<string, unknown>[];
+    totalRows: number;
+    executionTimeMs: number;
+  };
+  error?: string;
+}
+
+// Data source user-role join result (from Knex JOIN query)
+export interface DsUserRoleJoinRow extends DsUserRole {
+  user_email?: string;
+  user_display_name?: string;
+  role_name?: string;
+}
+
+// Knex join result for user roles with permissions
+export interface UserRolePermissionRow {
+  permissions: string;
+}
+
+// Knex join result for DS user roles with role info
+export interface DsUserRoleWithRoleInfo {
+  role_id: string;
+  role_name: string;
+}
+
+// Frontend API response shapes for NL Query workspace
+export interface DataSourceListItem {
+  id: string;
+  name: string;
+  client_type: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface SchemaOverviewResponse {
+  tableCount: number;
+  viewCount: number;
+  tables: SchemaTableSummary[];
+  schemaTextLength: number;
+}
+
+export interface SchemaTableSummary {
+  name: string;
+  columnCount: number;
+  columns: SchemaColumnSummary[];
+}
+
+export interface SchemaColumnSummary {
+  name: string;
+  type: string;
+}
+
+export interface QueryHistoryEntry {
+  id: string;
+  data_source_id: string;
+  user_id: string;
+  natural_language_query: string;
+  generated_sql?: string;
+  parsed_entities?: string;
+  access_check_result: NlAccessCheckResult;
+  access_check_details?: string;
+  execution_result?: string;
+  error_message?: string;
+  execution_time_ms?: number;
+  created_at: string;
+}
+
+// Chart configuration for NL results visualization
+export interface NlChartConfig {
+  chartType: 'bar' | 'line' | 'area' | 'pie' | 'scatter';
+  title: string;
+  xAxis: { field: string; label: string };
+  yAxis: { field: string; label: string }[];
+  colors?: string[];
+}
+
+// SQL AST node types for sql-parser.ts traversal
+// These match the actual runtime shapes from node-sql-parser's AST output
+export interface SqlAstNode {
+  type?: string;
+  from?: SqlFromItem[];
+  where?: SqlExpression;
+  having?: SqlExpression;
+  table?: SqlTableRef[] | SqlTableRef;
+  _next?: SqlAstNode;
+  [key: string]: unknown;
+}
+
+export interface SqlFromItem {
+  table?: string;
+  db?: string;
+  as?: string;
+  expr?: SqlAstNode;
+  [key: string]: unknown;
+}
+
+export interface SqlTableRef {
+  table?: string;
+  db?: string;
+  as?: string;
+  [key: string]: unknown;
+}
+
+export interface SqlExpression {
+  type?: string;
+  [key: string]: unknown;
+}
+
+// Schema data response from existing schema API
+export interface SchemaApiResponse {
+  tables: { name: string; columns: SchemaColumnSummary[] }[];
+  views?: { name: string; columns: SchemaColumnSummary[] }[];
+}
+
+// User list item (for admin user listing in permissions page)
+export interface UserListItem {
+  id: string;
+  email: string;
+  display_name: string;
+  is_active: boolean;
 }

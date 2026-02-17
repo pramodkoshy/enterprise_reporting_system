@@ -27,6 +27,7 @@ import {
   Terminal,
   Layers,
   Filter,
+  MessageSquare,
 } from 'lucide-react';
 import { useCanView, usePermissions } from '@/lib/hooks/usePermissions';
 
@@ -44,6 +45,7 @@ const mainNavItems = [
   { href: '/dashboards', label: 'Dashboards', icon: LayoutDashboard, permissionKey: 'dashboard' as const },
   { href: '/filters', label: 'Filters', icon: Filter, permissionKey: 'filter' as const },
   { href: '/jobs', label: 'Jobs', icon: Play, permissionKey: 'job' as const },
+  { href: '/nl-query', label: 'NL Query', icon: MessageSquare, permissionKey: 'query' as const },
 ];
 
 const adminNavItems = [
