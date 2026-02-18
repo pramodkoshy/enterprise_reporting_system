@@ -616,7 +616,7 @@ export interface SchemaOverviewResponse {
   tableCount: number;
   viewCount: number;
   tables: SchemaTableSummary[];
-  schemaTextLength: number;
+  schemaText: string;
 }
 
 export interface SchemaTableSummary {

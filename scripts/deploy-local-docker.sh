@@ -120,13 +120,13 @@ services:
     container_name: ers-local-app
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "4050:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      NEXT_PUBLIC_APP_URL: http://localhost:4050
       PORT: 3000
       AUTH_SECRET: ${AUTH_SECRET:-local-dev-secret-change-in-production}
-      AUTH_URL: http://localhost:3001
+      AUTH_URL: http://localhost:4050
       DATABASE_PATH: /app/data/config.sqlite
       REDIS_URL: redis://redis:6379
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
@@ -217,7 +217,7 @@ docker compose -f docker-compose.local.yml logs --tail=15
 echo ""
 echo -e "${YELLOW}Checking application health...${NC}"
 sleep 5
-if curl -s http://localhost:3001/api/health > /dev/null 2>&1; then
+if curl -s http://localhost:4050/api/health > /dev/null 2>&1; then
     echo -e "${GREEN}Application is healthy!${NC}"
 else
     echo -e "${YELLOW}Application may still be starting...${NC}"
@@ -231,7 +231,7 @@ echo "  Deployment Complete!"
 echo -e "========================================${NC}"
 echo ""
 echo -e "${BLUE}Access the application:${NC}"
-echo "  URL: http://localhost:3001"
+echo "  URL: http://localhost:4050"
 echo ""
 echo -e "${BLUE}Default credentials:${NC}"
 echo "  Email: admin@admin.com"

@@ -24,13 +24,13 @@ services:
     container_name: ers-local-app
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "4050:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      NEXT_PUBLIC_APP_URL: http://localhost:4050
       PORT: 3000
       AUTH_SECRET: ${AUTH_SECRET:-local-dev-secret-change-in-production}
-      AUTH_URL: http://localhost:3001
+      AUTH_URL: http://localhost:4050
       DATABASE_PATH: /app/data/config.sqlite
       REDIS_URL: redis://redis:6379
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}

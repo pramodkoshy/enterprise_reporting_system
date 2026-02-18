@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           columnCount: t.columns.length,
           columns: t.columns.map((c) => ({ name: c.name, type: c.type })),
         })),
-        schemaTextLength: context.schemaText.length,
+        schemaText: context.schemaText,
       },
     });
   } catch (error) {

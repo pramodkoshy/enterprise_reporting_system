@@ -1,7 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+/**
+ * NL Query Workspace Component
+ *
+ * This component uses TanStack Query hooks for:
+ * - Client-side data fetching and caching
+ * - Automatic background refetching
+ * - Optimistic updates
+ * - Request deduplication
+ * - Stale-while-revalidate behavior
+ *
+ * Performance benefits:
+ * - Cached schema responses (10 min TTL)
+ * - Cached data source list (5 min TTL)
+ * - Smart invalidation after mutations
+ * - Reduced server load
+ */
+
+import { useState, useCallback } from 'react';
 import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core';
 import { CopilotSidebar } from '@copilotkit/react-ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +46,13 @@ import {
 import { toast } from 'sonner';
 import { NlResultsTable } from './nl-results-table';
 import { NlResultsChart } from './nl-results-chart';
+import {
+  useActiveDataSources,
+  useDataSourceSchema,
+  useExecuteNlQuery,
+  useQueryHistory,
+  useRefreshSchema,
+} from '@/lib/hooks/use-nl-query';
 import type {
   NlQueryPipelineResult,
   AccessCheckDetail,
@@ -42,56 +65,56 @@ import type {
 } from '@/types/database';
 
 export function NlQueryWorkspace() {
+  // Local state
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>('');
   const [queryResult, setQueryResult] = useState<NlQueryPipelineResult | null>(null);
   const [chartConfig, setChartConfig] = useState<NlChartConfig | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
   const [activeTab, setActiveTab] = useState('results');
 
-  // Fetch active data sources
-  const { data: dataSources = [] } = useQuery<DataSourceListItem[]>({
-    queryKey: ['active-data-sources'],
-    queryFn: async () => {
-      const res = await fetch('/api/data-sources/active');
-      const json = await res.json();
-      return json.data || [];
-    },
-  });
+  // ============================================================================
+  // TanStack Query Hooks - Client-side caching and state management
+  // ============================================================================
 
-  // Fetch schema when data source is selected
-  const { data: schemaInfo, isLoading: schemaLoading, refetch: refetchSchema } = useQuery<SchemaOverviewResponse>({
-    queryKey: ['nl-schema', selectedDataSourceId],
-    queryFn: async () => {
-      const res = await fetch('/api/nl-query/schema', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_source_id: selectedDataSourceId }),
-      });
-      const json = await res.json();
-      return json.data;
-    },
-    enabled: !!selectedDataSourceId,
-  });
+  // Fetch active data sources with caching (5 min stale time)
+  const {
+    data: dataSources = [],
+    isLoading: dataSourcesLoading,
+    error: dataSourcesError,
+  } = useActiveDataSources();
 
-  // Fetch query history
-  const { data: queryHistory = [] } = useQuery<QueryHistoryEntry[]>({
-    queryKey: ['nl-query-history', selectedDataSourceId],
-    queryFn: async () => {
-      const url = selectedDataSourceId
-        ? `/api/nl-query/history?data_source_id=${selectedDataSourceId}&limit=20`
-        : '/api/nl-query/history?limit=20';
-      const res = await fetch(url);
-      const json = await res.json();
-      return json.data || [];
-    },
-  });
+  // Fetch schema with aggressive caching (10 min stale time)
+  const {
+    data: schemaInfo,
+    isLoading: schemaLoading,
+    error: schemaError,
+    refetch: refetchSchema,
+  } = useDataSourceSchema(selectedDataSourceId);
 
-  // Expose state to CopilotKit
+  // Query history with caching (30 sec stale time)
+  const {
+    data: queryHistory = [],
+    isLoading: historyLoading,
+  } = useQueryHistory(selectedDataSourceId, { limit: 20 });
+
+  // Query execution mutation with automatic cache invalidation
+  const executeMutation = useExecuteNlQuery();
+
+  // Schema refresh with cache invalidation
+  const refreshSchema = useRefreshSchema();
+
+  // ============================================================================
+  // CopilotKit Integration
+  // ============================================================================
+
+  const selectedDs = dataSources.find((ds: DataSourceListItem) => ds.id === selectedDataSourceId);
+
+  // Expose state to CopilotKit for AI context
   useCopilotReadable({
     description: 'Currently selected data source and its schema information for natural language SQL queries',
     value: {
       selectedDataSourceId,
-      selectedDataSourceName: dataSources.find((ds: DataSourceListItem) => ds.id === selectedDataSourceId)?.name,
+      selectedDataSourceName: selectedDs?.name,
+      schemaText: schemaInfo?.schemaText || null,
       schemaInfo: schemaInfo ? {
         tableCount: schemaInfo.tableCount,
         viewCount: schemaInfo.viewCount,
@@ -111,7 +134,7 @@ export function NlQueryWorkspace() {
   // CopilotKit action: Execute NL query
   useCopilotAction({
     name: 'executeNaturalLanguageQuery',
-    description: 'Execute a natural language query against the selected data source. Generates SQL, checks RBAC permissions, and returns results. Use this when the user asks about data, wants reports, or asks questions about the database.',
+    description: 'Execute a natural language query against the selected data source. Generates SQL, checks RBAC permissions, and returns results. IMPORTANT: Use the exact table and column names from the schemaText in context. Do not guess or pluralize table names - use them exactly as specified in the DATABASE SCHEMA section.',
     parameters: [
       {
         name: 'query',
@@ -122,7 +145,7 @@ export function NlQueryWorkspace() {
       {
         name: 'generatedSql',
         type: 'string',
-        description: 'The SQL query generated from the natural language query. Generate valid SQL based on the schema information available in the context.',
+        description: 'The SQL query generated from the natural language query. CRITICAL: Use ONLY the exact table names from the schemaText. For example, if the schema shows "regions" (plural), use "regions", not "region". Match table and column names exactly.',
         required: true,
       },
     ],
@@ -163,34 +186,21 @@ export function NlQueryWorkspace() {
         return { error: 'No data source selected' };
       }
 
-      setIsExecuting(true);
       try {
-        const res = await fetch('/api/nl-query/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query,
-            data_source_id: selectedDataSourceId,
-            generated_sql: generatedSql,
-          }),
+        // Use TanStack Query mutation which handles caching automatically
+        const result = await executeMutation.mutateAsync({
+          query,
+          dataSourceId: selectedDataSourceId,
+          generatedSql,
         });
 
-        const json = await res.json();
-
-        if (!json.success) {
-          const errorMsg = json.error?.message || 'Query execution failed';
-          setQueryResult(null);
-          return { error: errorMsg };
-        }
-
-        setQueryResult(json.data as NlQueryPipelineResult);
+        // Update local state
+        setQueryResult(result);
         setActiveTab('results');
-        return json.data as NlQueryPipelineResult;
+        return result;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         return { error: errorMsg };
-      } finally {
-        setIsExecuting(false);
       }
     },
   });
@@ -273,35 +283,37 @@ export function NlQueryWorkspace() {
         return { error: 'No data source selected' };
       }
 
-      const res = await fetch('/api/nl-query/schema', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_source_id: selectedDataSourceId, refresh: true }),
-      });
-
-      const json = await res.json();
-      await refetchSchema();
+      // Use TanStack Query's refreshSchema which invalidates cache and refetches
+      await refreshSchema(selectedDataSourceId);
       toast.success('Schema refreshed');
-      return json.data as SchemaOverviewResponse;
+      return schemaInfo as SchemaOverviewResponse;
     },
   });
 
-  const handleRefreshSchema = async () => {
+  // ============================================================================
+  // Event Handlers
+  // ============================================================================
+
+  const handleRefreshSchema = useCallback(async () => {
     if (!selectedDataSourceId) return;
     try {
-      await fetch('/api/nl-query/schema', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_source_id: selectedDataSourceId, refresh: true }),
-      });
-      await refetchSchema();
+      await refreshSchema(selectedDataSourceId);
       toast.success('Schema cache refreshed');
     } catch {
       toast.error('Failed to refresh schema');
     }
-  };
+  }, [selectedDataSourceId, refreshSchema]);
 
-  const selectedDs = dataSources.find((ds: DataSourceListItem) => ds.id === selectedDataSourceId);
+  const handleDataSourceChange = useCallback((dsId: string) => {
+    setSelectedDataSourceId(dsId);
+    setQueryResult(null); // Clear previous results
+    setChartConfig(null); // Clear previous chart
+    setActiveTab('results'); // Reset tab
+  }, []);
+
+  // ============================================================================
+  // Render
+  // ============================================================================
 
   return (
     <CopilotSidebar
@@ -346,9 +358,11 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <Select value={selectedDataSourceId} onValueChange={setSelectedDataSourceId}>
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="Select a data source" />
+              <Select value={selectedDataSourceId} onValueChange={handleDataSourceChange}>
+                <SelectTrigger className="w-[300px]" disabled={dataSourcesLoading}>
+                  <SelectValue placeholder={
+                    dataSourcesLoading ? 'Loading data sources...' : 'Select a data source'
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {dataSources.map((ds: DataSourceListItem) => (
@@ -369,7 +383,9 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
               {schemaInfo && (
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{schemaInfo.tableCount} tables</Badge>
-                  <Badge variant="secondary">{schemaInfo.viewCount} views</Badge>
+                  {schemaInfo.viewCount > 0 && (
+                    <Badge variant="secondary">{schemaInfo.viewCount} views</Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -379,24 +395,41 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
               <div className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">Available tables:</p>
                 <div className="flex flex-wrap gap-1">
-                  {schemaInfo.tables.map((t: SchemaTableSummary) => (
+                  {schemaInfo.tables.slice(0, 20).map((t: SchemaTableSummary) => (
                     <Badge key={t.name} variant="outline" className="text-xs font-mono">
-                      {t.name} ({t.columnCount} cols)
+                      {t.name} ({t.columnCount})
                     </Badge>
                   ))}
+                  {schemaInfo.tables.length > 20 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{schemaInfo.tables.length - 20} more
+                    </Badge>
+                  )}
                 </div>
               </div>
+            )}
+
+            {/* Error states */}
+            {dataSourcesError && (
+              <p className="text-sm text-destructive mt-2">
+                Failed to load data sources. Please refresh the page.
+              </p>
+            )}
+            {schemaError && selectedDataSourceId && (
+              <p className="text-sm text-destructive mt-2">
+                Failed to load schema. Try refreshing.
+              </p>
             )}
           </CardContent>
         </Card>
 
         {/* Results Area */}
-        {(queryResult || isExecuting) && (
+        {(queryResult || executeMutation.isPending) && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  {isExecuting ? (
+                  {executeMutation.isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : queryResult?.accessGranted ? (
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -507,9 +540,14 @@ ${schemaInfo ? `It has ${schemaInfo.tableCount} tables and ${schemaInfo.viewCoun
         {queryHistory.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Recent Queries
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Recent Queries
+                </div>
+                {historyLoading && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -60,12 +60,10 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# IMPORTANT: Copy native modules and seed dependencies from builder
-# Next.js standalone build doesn't automatically include all native modules
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/knex ./node_modules/knex
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/uuid ./node_modules/uuid
+# IMPORTANT: Copy all node_modules from builder
+# The Next.js standalone build already optimizes what's needed, but we still need
+# some modules that aren't included (like knex and its dependencies for migrations)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy migrations and seeds directories for database setup
 COPY --from=builder --chown=nextjs:nodejs /app/dist/migrations /app/migrations

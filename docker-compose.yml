@@ -42,7 +42,13 @@ services:
     image: redis:7-alpine
     container_name: ers-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    # Use default password if REDIS_PASSWORD is not set
+    command: >
+      sh -c 'if [ -z "$$REDIS_PASSWORD" ]; then
+        redis-server --appendonly yes;
+      else
+        redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+      fi'
     volumes:
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/redis/data:/data
     healthcheck:
@@ -91,6 +97,10 @@ services:
       EXPORT_PAGE_SIZE: ${EXPORT_PAGE_SIZE:-1000}
       VIRTUAL_SCROLL_THRESHOLD: ${VIRTUAL_SCROLL_THRESHOLD:-500}
       ENABLE_VIRTUAL_SCROLLING: ${ENABLE_VIRTUAL_SCROLLING:-true}
+
+      # Natural Language Query (NL Query) - AI Configuration
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
     volumes:
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/data:/app/data
       - ${DATA_PATH:-/srv/enterprise-reporting-system}/app/job-outputs:/app/job-outputs
