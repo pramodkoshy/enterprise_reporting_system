@@ -153,7 +153,7 @@ test.describe('API - Saved Queries', () => {
   let authCookie: string;
   let testDataSourceId: string;
 
-  test.beforeAll(async ({ request, browser }) => {
+  test.beforeAll(async ({ browser, request }) => {
     const page = await browser.newPage();
     const testHelpers = new TestHelpers(page);
     await testHelpers.login();
@@ -162,10 +162,10 @@ test.describe('API - Saved Queries', () => {
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
     authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
 
-    const apiHelpers = new ApiTestHelpers(request, authCookie);
     await page.close();
 
-    // Create a test data source
+    // Create a test data source for use in tests
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const dsResponse = await apiHelpers.createDataSource({
       name: `Test DS for Queries ${Date.now()}`,
       clientType: 'sqlite3',
@@ -224,7 +224,7 @@ test.describe('API - SQL Execution', () => {
   let authCookie: string;
   let testDataSourceId: string;
 
-  test.beforeAll(async ({ request, browser }) => {
+  test.beforeAll(async ({ browser, request }) => {
     const page = await browser.newPage();
     const testHelpers = new TestHelpers(page);
     await testHelpers.login();
@@ -233,10 +233,10 @@ test.describe('API - SQL Execution', () => {
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
     authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
 
-    const apiHelpers = new ApiTestHelpers(request, authCookie);
     await page.close();
 
-    // Create a test data source
+    // Create a test data source for use in tests
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const dsResponse = await apiHelpers.createDataSource({
       name: `Test DS for SQL ${Date.now()}`,
       clientType: 'sqlite3',
@@ -311,7 +311,7 @@ test.describe('API - Reports', () => {
   let authCookie: string;
   let testQueryId: string;
 
-  test.beforeAll(async ({ request, browser }) => {
+  test.beforeAll(async ({ browser, request }) => {
     const page = await browser.newPage();
     const testHelpers = new TestHelpers(page);
     await testHelpers.login();
@@ -429,7 +429,7 @@ test.describe('API - Jobs', () => {
   let authCookie: string;
   let testQueryId: string;
 
-  test.beforeAll(async ({ request, browser }) => {
+  test.beforeAll(async ({ browser, request }) => {
     const page = await browser.newPage();
     const testHelpers = new TestHelpers(page);
     await testHelpers.login();

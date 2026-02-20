@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
 import { ApiTestHelpers } from './api-test-helpers';
 import { TestHelpers } from './helpers/test-helpers';
 
@@ -13,11 +13,11 @@ import { TestHelpers } from './helpers/test-helpers';
  */
 
 test.describe('API - Encryption & Decryption', () => {
-  let apiHelpers: ApiTestHelpers;
+  let authCookie: string;
   let authContext: any;
   let authPage: any;
 
-  test.beforeAll(async ({ browser, request }) => {
+  test.beforeAll(async ({ browser }) => {
     // Create a page for authentication
     authContext = await browser.newContext();
     authPage = await authContext.newPage();
@@ -27,9 +27,7 @@ test.describe('API - Encryption & Decryption', () => {
 
     const cookies = await authContext.cookies();
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
-    const authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
-
-    apiHelpers = new ApiTestHelpers(request, authCookie);
+    authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
   });
 
   test.afterAll(async () => {
@@ -37,7 +35,8 @@ test.describe('API - Encryption & Decryption', () => {
     if (authContext) await authContext.close();
   });
 
-  test('should encrypt connection config when creating data source', async () => {
+  test('should encrypt connection config when creating data source', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const connectionConfig = {
       host: 'localhost',
       port: 5432,
@@ -68,7 +67,8 @@ test.describe('API - Encryption & Decryption', () => {
     expect(/^[0-9a-fA-F]+$/.test(connectionConfigRaw)).toBe(true);
   });
 
-  test('should decrypt connection config when fetching data source', async () => {
+  test('should decrypt connection config when fetching data source', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const connectionConfig = {
       host: 'localhost',
       port: 5432,
@@ -105,7 +105,8 @@ test.describe('API - Encryption & Decryption', () => {
     expect(decryptedConfig.password).toBe('testpassword123');
   });
 
-  test('should handle SQLite connection encryption/decryption', async () => {
+  test('should handle SQLite connection encryption/decryption', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const connectionConfig = {
       filename: ':memory:',
     };
@@ -128,7 +129,8 @@ test.describe('API - Encryption & Decryption', () => {
     expect(getData.data.connectionConfig.filename).toBe(':memory:');
   });
 
-  test('should handle MySQL connection encryption/decryption', async () => {
+  test('should handle MySQL connection encryption/decryption', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const connectionConfig = {
       host: 'localhost',
       port: 3306,
@@ -160,7 +162,7 @@ test.describe('API - Encryption & Decryption', () => {
 });
 
 test.describe('API - SQL Execution with Logging', () => {
-  let apiHelpers: ApiTestHelpers;
+  let authCookie: string;
   let sqliteDataSourceId: string;
   let authContext: any;
   let authPage: any;
@@ -174,11 +176,10 @@ test.describe('API - SQL Execution with Logging', () => {
 
     const cookies = await authContext.cookies();
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
-    const authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
-
-    apiHelpers = new ApiTestHelpers(request, authCookie);
+    authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
 
     // Create SQLite data source for testing
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const dsResponse = await apiHelpers.createDataSource({
       name: `SQLite for SQL Tests ${Date.now()}`,
       clientType: 'sqlite3',
@@ -194,7 +195,8 @@ test.describe('API - SQL Execution with Logging', () => {
     if (authContext) await authContext.close();
   });
 
-  test('should execute simple SELECT query', async () => {
+  test('should execute simple SELECT query', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: 'SELECT 1 as number, "test" as text',
       dataSourceId: sqliteDataSourceId,
@@ -209,7 +211,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.data.rows[0]).toHaveProperty('text', 'test');
   });
 
-  test('should execute query with JOIN', async () => {
+  test('should execute query with JOIN', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: `
         WITH users(id, name) AS (
@@ -240,7 +243,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.data.rows.length).toBeGreaterThan(0);
   });
 
-  test('should execute query with aggregations', async () => {
+  test('should execute query with aggregations', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: `
         WITH sales(id, amount, category) AS (
@@ -273,7 +277,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.data.rows.length).toBe(3);
   });
 
-  test('should execute query with pagination', async () => {
+  test('should execute query with pagination', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: `
         WITH numbers(n) AS (
@@ -300,7 +305,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.data.rows[1].n).toBe(3);
   });
 
-  test('should reject non-SELECT query', async () => {
+  test('should reject non-SELECT query', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: 'INSERT INTO users VALUES (1, "test")',
       dataSourceId: sqliteDataSourceId,
@@ -314,7 +320,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.error.message).toContain('SELECT');
   });
 
-  test('should handle query syntax errors gracefully', async () => {
+  test('should handle query syntax errors gracefully', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.executeSql({
       sql: 'SELECT * FROM nonexistent_table',
       dataSourceId: sqliteDataSourceId,
@@ -329,7 +336,8 @@ test.describe('API - SQL Execution with Logging', () => {
     expect(data.error).toHaveProperty('message');
   });
 
-  test('should validate SQL before execution', async () => {
+  test('should validate SQL before execution', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.validateSql({
       sql: 'SELECT * FROM users WHERE id = ?',
     });
@@ -343,11 +351,11 @@ test.describe('API - SQL Execution with Logging', () => {
 });
 
 test.describe('API - Error Logging Scenarios', () => {
-  let apiHelpers: ApiTestHelpers;
+  let authCookie: string;
   let authContext: any;
   let authPage: any;
 
-  test.beforeAll(async ({ browser, request }) => {
+  test.beforeAll(async ({ browser }) => {
     authContext = await browser.newContext();
     authPage = await authContext.newPage();
 
@@ -356,9 +364,7 @@ test.describe('API - Error Logging Scenarios', () => {
 
     const cookies = await authContext.cookies();
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
-    const authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
-
-    apiHelpers = new ApiTestHelpers(request, authCookie);
+    authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
   });
 
   test.afterAll(async () => {
@@ -366,7 +372,8 @@ test.describe('API - Error Logging Scenarios', () => {
     if (authContext) await authContext.close();
   });
 
-  test('should log validation errors for missing fields', async () => {
+  test('should log validation errors for missing fields', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     // Test data source creation with missing fields
     const response = await apiHelpers.createDataSource({
       name: 'Invalid DS',
@@ -380,7 +387,8 @@ test.describe('API - Error Logging Scenarios', () => {
     expect(data.error.code).toBe('INVALID_INPUT');
   });
 
-  test('should log validation errors for queries', async () => {
+  test('should log validation errors for queries', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.createQuery({
       name: 'Invalid Query',
       // Missing dataSourceId and sqlContent
@@ -393,7 +401,8 @@ test.describe('API - Error Logging Scenarios', () => {
     expect(data.error.code).toBe('INVALID_INPUT');
   });
 
-  test('should log not found errors', async () => {
+  test('should log not found errors', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const response = await apiHelpers.getDataSource('non-existent-id-12345');
     expect(response.status()).toBe(404);
 
@@ -404,11 +413,11 @@ test.describe('API - Error Logging Scenarios', () => {
 });
 
 test.describe('API - Performance Logging', () => {
-  let apiHelpers: ApiTestHelpers;
+  let authCookie: string;
   let authContext: any;
   let authPage: any;
 
-  test.beforeAll(async ({ browser, request }) => {
+  test.beforeAll(async ({ browser }) => {
     authContext = await browser.newContext();
     authPage = await authContext.newPage();
 
@@ -417,9 +426,7 @@ test.describe('API - Performance Logging', () => {
 
     const cookies = await authContext.cookies();
     const authCookieObj = cookies.find(c => c.name.includes('session-token'));
-    const authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
-
-    apiHelpers = new ApiTestHelpers(request, authCookie);
+    authCookie = authCookieObj ? `${authCookieObj.name}=${authCookieObj.value}` : '';
   });
 
   test.afterAll(async () => {
@@ -427,7 +434,8 @@ test.describe('API - Performance Logging', () => {
     if (authContext) await authContext.close();
   });
 
-  test('should include duration in response metadata', async () => {
+  test('should include duration in response metadata', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     const startTime = Date.now();
 
     const response = await apiHelpers.getQueries();
@@ -441,7 +449,8 @@ test.describe('API - Performance Logging', () => {
     expect(requestDuration).toBeLessThan(5000);
   });
 
-  test('should handle concurrent requests', async () => {
+  test('should handle concurrent requests', async ({ request }) => {
+    const apiHelpers = new ApiTestHelpers(request, authCookie);
     // Create multiple concurrent requests
     const promises = [
       apiHelpers.getQueries(),

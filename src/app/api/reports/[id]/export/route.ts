@@ -171,7 +171,7 @@ function buildSQLWithFilters(baseSQL: string, filterConfig: FilterGroup | null):
   const groupByMatch = cleanSQL.match(/\bGROUP BY\s+[^;]+?(?=\bORDER BY\b|\bHAVING\b|$)/i);
 
   // Remove these clauses from the base SQL
-  let baseQuery = cleanSQL
+  const baseQuery = cleanSQL
     .replace(/\bORDER BY\s+[^;]+$/i, '')
     .replace(/\bHAVING\s+[^;]+?(?=\bORDER BY\b|$)/i, '')
     .replace(/\bGROUP BY\s+[^;]+?(?=\bORDER BY\b|\bHAVING\b|$)/i, '')

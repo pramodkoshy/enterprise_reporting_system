@@ -39,6 +39,7 @@ export interface DataSource {
   client_type: DatabaseClientType;
   connection_config: string;
   is_active: boolean;
+  is_editable?: boolean;  // NEW - Allow CRUD operations on entity data
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -448,7 +449,8 @@ export type ResourceType =
   | 'role'
   | 'ds_role'
   | 'ds_entity_permission'
-  | 'nl_query';
+  | 'nl_query'
+  | 'metadata_entity';  // NEW - Entity metadata management
 
 export type PermissionLevel = 'view' | 'edit' | 'execute' | 'admin';
 
@@ -699,3 +701,101 @@ export interface UserListItem {
   display_name: string;
   is_active: boolean;
 }
+
+// ============================================================================
+// Metadata Entity Registry Types
+// ============================================================================
+
+/**
+ * Metadata Entity Header
+ * Stores entity-level metadata for tables and views discovered from datasources.
+ */
+export interface MetadataEntityHeader {
+  id: string;
+  data_source_id: string;
+  entity_name: string;
+  entity_schema?: string;
+  entity_type: 'table' | 'view';
+  description?: string;
+  schema_metadata: string; // JSON
+  is_active: boolean;
+  is_hidden: boolean;
+  last_introspected_at: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Metadata Entity Field
+ * Stores field-level metadata for columns within entities.
+ */
+export interface MetadataEntityField {
+  id: string;
+  entity_header_id: string;
+  field_name: string;
+  data_type: string;
+  is_nullable: boolean;
+  is_primary_key: boolean;
+  is_foreign_key: boolean;
+  foreign_key_table?: string;
+  foreign_key_column?: string;
+  default_value?: string;
+  description?: string;
+  is_display_field: boolean;
+  is_searchable: boolean;
+  display_order?: number;
+  relationship_ui_type?: 'dropdown' | 'popup' | null;  // FK UI configuration
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Entity with Fields (API response)
+ * Complete entity metadata including all fields
+ */
+export interface MetadataEntityWithFields extends MetadataEntityHeader {
+  fields: MetadataEntityField[];
+  data_source_name?: string;
+  permissions?: ResourcePermission[];
+}
+
+/**
+ * Entity Schema Metadata (JSON structure in schema_metadata field)
+ */
+export interface EntitySchemaMetadata {
+  tableName: string;
+  schema?: string;
+  entityType: 'table' | 'view';
+  primaryKey?: string[];
+  foreignKeys?: Array<{
+    columns: string[];
+    referencedTable: string;
+    referencedColumns: string[];
+  }>;
+  indexes?: Array<{
+    name: string;
+    columns: string[];
+    unique: boolean;
+  }>;
+  columns?: Array<{
+    name: string;
+    type: string;
+    nullable: boolean;
+    defaultValue?: unknown;
+  }>;
+}
+
+/**
+ * List/Filter parameters for metadata entities
+ */
+export interface MetadataEntityListParams {
+  data_source_id?: string;
+  is_active?: boolean;
+  is_hidden?: boolean;
+  include_hidden?: boolean;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+

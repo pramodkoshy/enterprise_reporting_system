@@ -1,0 +1,129 @@
+# Page snapshot
+
+```yaml
+- generic [active]:
+  - generic:
+    - generic:
+      - generic:
+        - heading [level=1]: Role Management
+        - paragraph: Manage roles and their granular permissions
+      - button:
+        - img
+        - text: Create Role
+    - generic:
+      - generic:
+        - heading [level=3]:
+          - img
+          - text: All Roles
+      - generic:
+        - generic: No roles found
+  - region "Notifications alt+T":
+    - list:
+      - listitem:
+        - generic:
+          - img
+        - generic:
+          - generic: Not authenticated
+  - alert
+  - dialog "Create Role" [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Create Role" [level=2] [ref=e4]
+      - paragraph [ref=e5]: Create a new role and define its global and resource-specific permissions
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - text: Role Name *
+        - textbox "Role Name *" [ref=e8]:
+          - /placeholder: e.g., Sales Viewer, Report Editor
+          - text: Resource Viewer 1771602751392
+      - generic [ref=e9]:
+        - text: Description
+        - textbox "Description" [ref=e10]:
+          - /placeholder: Describe what this role can do...
+          - text: Role with specific resource permissions
+      - generic [ref=e11]:
+        - tablist [ref=e12]:
+          - tab "Global Permissions" [selected] [ref=e13] [cursor=pointer]
+          - tab "Resource Permissions" [ref=e14] [cursor=pointer]
+        - tabpanel "Global Permissions" [ref=e15]:
+          - generic [ref=e16]:
+            - text: Global Permissions
+            - generic [ref=e17]:
+              - heading "Data Sources" [level=4] [ref=e18]
+              - generic [ref=e19]:
+                - generic [ref=e20]:
+                  - checkbox "data_source → view" [ref=e21] [cursor=pointer]
+                  - generic [ref=e22] [cursor=pointer]: data_source → view
+                - generic [ref=e23]:
+                  - checkbox "data_source → *" [ref=e24] [cursor=pointer]
+                  - generic [ref=e25] [cursor=pointer]: data_source → *
+            - generic [ref=e26]:
+              - heading "Queries" [level=4] [ref=e27]
+              - generic [ref=e28]:
+                - generic [ref=e29]:
+                  - checkbox "query → view" [ref=e30] [cursor=pointer]
+                  - generic [ref=e31] [cursor=pointer]: query → view
+                - generic [ref=e32]:
+                  - checkbox "query → *" [ref=e33] [cursor=pointer]
+                  - generic [ref=e34] [cursor=pointer]: query → *
+            - generic [ref=e35]:
+              - heading "Reports" [level=4] [ref=e36]
+              - generic [ref=e37]:
+                - generic [ref=e38]:
+                  - checkbox "report → view" [ref=e39] [cursor=pointer]
+                  - generic [ref=e40] [cursor=pointer]: report → view
+                - generic [ref=e41]:
+                  - checkbox "report → edit" [ref=e42] [cursor=pointer]
+                  - generic [ref=e43] [cursor=pointer]: report → edit
+                - generic [ref=e44]:
+                  - checkbox "report → *" [ref=e45] [cursor=pointer]
+                  - generic [ref=e46] [cursor=pointer]: report → *
+            - generic [ref=e47]:
+              - heading "Charts" [level=4] [ref=e48]
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - checkbox "chart → view" [ref=e51] [cursor=pointer]
+                  - generic [ref=e52] [cursor=pointer]: chart → view
+                - generic [ref=e53]:
+                  - checkbox "chart → edit" [ref=e54] [cursor=pointer]
+                  - generic [ref=e55] [cursor=pointer]: chart → edit
+                - generic [ref=e56]:
+                  - checkbox "chart → *" [ref=e57] [cursor=pointer]
+                  - generic [ref=e58] [cursor=pointer]: chart → *
+            - generic [ref=e59]:
+              - heading "Dashboards" [level=4] [ref=e60]
+              - generic [ref=e61]:
+                - generic [ref=e62]:
+                  - checkbox "dashboard → view" [checked] [ref=e63] [cursor=pointer]:
+                    - generic:
+                      - img
+                  - generic [ref=e64] [cursor=pointer]: dashboard → view
+                - generic [ref=e65]:
+                  - checkbox "dashboard → edit" [ref=e66] [cursor=pointer]
+                  - generic [ref=e67] [cursor=pointer]: dashboard → edit
+                - generic [ref=e68]:
+                  - checkbox "dashboard → *" [ref=e69] [cursor=pointer]
+                  - generic [ref=e70] [cursor=pointer]: dashboard → *
+            - generic [ref=e71]:
+              - heading "Jobs" [level=4] [ref=e72]
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - checkbox "job → view" [ref=e75] [cursor=pointer]
+                  - generic [ref=e76] [cursor=pointer]: job → view
+                - generic [ref=e77]:
+                  - checkbox "job → execute" [ref=e78] [cursor=pointer]
+                  - generic [ref=e79] [cursor=pointer]: job → execute
+                - generic [ref=e80]:
+                  - checkbox "job → *" [ref=e81] [cursor=pointer]
+                  - generic [ref=e82] [cursor=pointer]: job → *
+            - generic [ref=e83]:
+              - heading "Administration" [level=4] [ref=e84]
+              - generic [ref=e86]:
+                - checkbox "user → *" [ref=e87] [cursor=pointer]
+                - generic [ref=e88] [cursor=pointer]: user → *
+    - generic [ref=e89]:
+      - button "Cancel" [ref=e90] [cursor=pointer]
+      - button "Create Role" [ref=e91] [cursor=pointer]
+    - button "Close" [ref=e92] [cursor=pointer]:
+      - img [ref=e93]
+      - generic [ref=e96]: Close
+```

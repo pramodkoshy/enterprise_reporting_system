@@ -165,6 +165,26 @@ export class ApiTestHelpers {
   }
 
   /**
+   * Execute SQL for testing (allows DDL statements like CREATE TABLE, INSERT, etc.)
+   * This is a test-only endpoint that bypasses the read-only query restriction
+   */
+  async executeTestSql(data: {
+    sql: string;
+    dataSourceId: string;
+  }) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cookie': this.authCookie,
+      'x-test-mode': 'true',
+    };
+
+    return await this.request.post('/api/test/sql/execute', {
+      headers,
+      data: JSON.stringify(data),
+    });
+  }
+
+  /**
    * Validate SQL
    */
   async validateSql(data: { sql: string }) {

@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Admin Login Test', () => {
-  const baseUrl = 'http://148.135.137.110:3000';
-
   test('should login with admin credentials', async ({ page }) => {
-    await page.goto(baseUrl);
+    await page.goto('/');
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
@@ -46,7 +44,7 @@ test.describe('Admin Login Test', () => {
 
     if (hasDashboard > 0) {
       console.log('✅ Login successful!');
-      expect(currentUrl).toContain(baseUrl);
+      expect(currentUrl).not.toContain('/login');
     } else if (hasError > 0) {
       console.log('❌ Login failed - Invalid credentials');
     }

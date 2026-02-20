@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth/config';
 import { getDb } from '@/lib/db/config';
 import { getConnection } from '@/lib/db/connection-manager';
 import { introspectSchema } from '@/lib/sql/schema-introspection';
+import { SyncService } from '@/lib/metadata/sync-service';
 import type { DataSource } from '@/types/database';
 
 export async function GET(
@@ -38,6 +39,16 @@ export async function GET(
     const connection = await getConnection(dataSource);
     const { schema, logs } = await introspectSchema(connection, dataSource.client_type);
 
+    // Sync metadata after successful introspection
+    let syncResult;
+    try {
+      syncResult = await SyncService.syncDataSource(dataSourceId, session.user.id);
+      console.log(`[Schema Sync] Synced ${syncResult.entitiesCreated} created, ${syncResult.entitiesUpdated} updated entities for datasource ${dataSourceId}`);
+    } catch (syncError) {
+      console.error('[Schema Sync] Failed to sync metadata:', syncError);
+      // Don't fail the request if sync fails - still return the schema
+    }
+
     // Check if schema is empty and provide helpful message
     if (schema.tables.length === 0 && schema.views.length === 0) {
       return NextResponse.json({
@@ -49,7 +60,16 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: { ...schema, logs },
+      data: {
+        ...schema,
+        logs,
+        metadataSync: syncResult ? {
+          entitiesCreated: syncResult.entitiesCreated,
+          entitiesUpdated: syncResult.entitiesUpdated,
+          fieldsCreated: syncResult.fieldsCreated,
+          fieldsUpdated: syncResult.fieldsUpdated,
+        } : undefined,
+      },
     });
   } catch (error) {
     console.error('Schema introspection error:', error);

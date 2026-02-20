@@ -24,19 +24,16 @@ function buildKnexConfig(
   clientType: DatabaseClientType,
   connectionConfig: ConnectionConfig,
 ): Knex.Config {
-  const baseConfig: Knex.Config = {
-    client: clientType,
-    pool: {
-      min: 0,
-      max: 10,
-      acquireTimeoutMillis: 60000,
-      idleTimeoutMillis: 600000,
-    },
+  const poolConfig = {
+    min: 0,
+    max: 10,
+    acquireTimeoutMillis: 60000,
+    idleTimeoutMillis: 600000,
   };
 
   switch (clientType) {
     case "sqlite3":
-      let filename = connectionConfig.filename || ":memory:";
+      const filename = connectionConfig.filename || ":memory:";
       let fullPath: string;
 
       if (filename === ":memory:") {
@@ -53,17 +50,17 @@ function buildKnexConfig(
       }
 
       return {
-        ...baseConfig,
         client: "better-sqlite3",
         connection: {
           filename: fullPath,
         },
         useNullAsDefault: true,
+        pool: poolConfig,
       };
 
     case "pg":
       return {
-        ...baseConfig,
+        client: "pg",
         connection: {
           host: connectionConfig.host,
           port: connectionConfig.port || 5432,
@@ -72,11 +69,11 @@ function buildKnexConfig(
           password: connectionConfig.password,
           ssl: connectionConfig.ssl ? { rejectUnauthorized: false } : undefined,
         },
+        pool: poolConfig,
       };
 
     case "mysql":
       return {
-        ...baseConfig,
         client: "mysql2",
         connection: {
           host: connectionConfig.host,
@@ -86,11 +83,12 @@ function buildKnexConfig(
           password: connectionConfig.password,
           ssl: connectionConfig.ssl ? { rejectUnauthorized: false } : undefined,
         },
+        pool: poolConfig,
       };
 
     case "mssql":
       return {
-        ...baseConfig,
+        client: "tedious",
         connection: {
           server: connectionConfig.host,
           port: connectionConfig.port || 1433,
@@ -106,7 +104,7 @@ function buildKnexConfig(
 
     case "oracledb":
       return {
-        ...baseConfig,
+        client: "oracledb",
         connection: {
           host: connectionConfig.host,
           port: connectionConfig.port || 1521,
@@ -114,6 +112,7 @@ function buildKnexConfig(
           user: connectionConfig.user,
           password: connectionConfig.password,
         },
+        pool: poolConfig,
       };
 
     default:
