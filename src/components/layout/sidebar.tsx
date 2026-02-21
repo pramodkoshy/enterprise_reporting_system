@@ -28,6 +28,7 @@ import {
   Layers,
   Filter,
   MessageSquare,
+  TableProperties,
 } from 'lucide-react';
 import { useCanView, usePermissions } from '@/lib/hooks/usePermissions';
 

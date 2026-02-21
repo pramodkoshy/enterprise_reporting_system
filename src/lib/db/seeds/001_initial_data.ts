@@ -1,6 +1,7 @@
 import type { Knex } from 'knex';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { encrypt } from '../../security/encryption';
 
 export async function seed(knex: Knex): Promise<void> {
   // Clear existing data
@@ -111,9 +112,9 @@ export async function seed(knex: Knex): Promise<void> {
     name: 'Sakila Demo DB',
     description: 'Sample Sakila database for testing',
     client_type: 'sqlite3',
-    connection_config: JSON.stringify({
+    connection_config: encrypt(JSON.stringify({
       filename: './data/uploads/sakila.db',
-    }),
+    })),
     is_active: true,
     created_by: adminUserId,
   });

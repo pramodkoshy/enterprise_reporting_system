@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,9 @@ import {
   Trash2,
   AlertCircle,
   AlertTriangle,
+  TableProperties,
+  RefreshCw,
+  Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateTime } from '@/lib/utils';
@@ -80,6 +84,7 @@ export default function DataSourcesPage() {
   const [dataSourceToDelete, setDataSourceToDelete] = useState<DataSource | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [usageInfo, setUsageInfo] = useState<{ queries: number; reports: number; charts: number } | null>(null);
+  const [inspectingDs, setInspectingDs] = useState<string | null>(null);
 
   const { data: dataSources, isLoading } = useQuery<DataSource[]>({
     queryKey: ['data-sources'],
@@ -407,6 +412,33 @@ export default function DataSourcesPage() {
     if (!dataSourceToDelete) return;
     setIsDeleting(true);
     deleteMutation.mutate(dataSourceToDelete.id);
+  };
+
+  const inspectMutation = useMutation({
+    mutationFn: async (dsId: string) => {
+      const res = await fetch(`/api/data-sources/${dsId}/inspect`, {
+        method: 'POST',
+      });
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      if (data.success) {
+        toast.success(`Schema imported successfully! Found ${data.data?.entities_count || 0} entities`);
+        queryClient.invalidateQueries({ queryKey: ['data-sources'] });
+      } else {
+        toast.error(data.error?.message || 'Failed to inspect schema');
+      }
+      setInspectingDs(null);
+    },
+    onError: () => {
+      toast.error('Failed to inspect schema');
+      setInspectingDs(null);
+    },
+  });
+
+  const handleInspectSchema = async (dsId: string) => {
+    setInspectingDs(dsId);
+    inspectMutation.mutate(dsId);
   };
 
   return (
@@ -910,7 +942,7 @@ export default function DataSourcesPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead className="w-[180px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -924,15 +956,54 @@ export default function DataSourcesPage() {
                       {ds.description || '-'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={ds.is_active ? 'default' : 'secondary'}>
-                        {ds.is_active ? 'Active' : 'No Connection'}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={ds.is_active ? 'default' : 'secondary'}>
+                          {ds.is_active ? 'Connected' : 'No Connection'}
+                        </Badge>
+                        {ds.is_inspected && (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            <Check className="h-3 w-3 mr-1" />
+                            Inspected
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(ds.created_at)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {/* Inspect Schema button - only for active datasources */}
+                        {ds.is_active && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleInspectSchema(ds.id)}
+                            disabled={inspectingDs === ds.id}
+                            title="Import schema to enable entity metadata"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            {inspectingDs === ds.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        {/* Entity Metadata button - only show if inspected */}
+                        {ds.is_active && (
+                          <Link href={`/metadata/entities?data_source_id=${ds.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Manage Entity Metadata"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        )}
+                        {/* Edit button */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -941,6 +1012,7 @@ export default function DataSourcesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {/* Delete button */}
                         <Button
                           variant="ghost"
                           size="sm"

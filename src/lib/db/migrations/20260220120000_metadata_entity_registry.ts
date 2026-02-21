@@ -82,8 +82,9 @@ export async function up(knex: Knex): Promise<void> {
     table.text('description'); // User-provided business description
     table.boolean('is_display_field').defaultTo(false); // Mark as display field in lookups
     table.boolean('is_searchable').defaultTo(true); // Include in search suggestions
-    table.integer('display_order'); // UI ordering
-    table.string('relationship_ui_type'); // FK UI: 'dropdown', 'popup', or NULL
+    table.integer('display_order'); // UI ordering (drag-and-drop reordering)
+    table.string('section_name'); // Group fields into visual sections
+    table.string('relationship_ui_type'); // FK UI: 'dropdown', 'popup', 'tab', or NULL
 
     // Audit fields
     table.timestamp('created_at').defaultTo(knex.fn.now());
@@ -109,12 +110,14 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.raw('CREATE INDEX idx_metadata_entity_field_display ON metadata_entity_field(is_display_field)');
   await knex.schema.raw('CREATE INDEX idx_metadata_entity_field_searchable ON metadata_entity_field(is_searchable)');
   await knex.schema.raw('CREATE INDEX idx_metadata_entity_field_fk ON metadata_entity_field(is_foreign_key, foreign_key_table)');
+  await knex.schema.raw('CREATE INDEX idx_metadata_entity_field_section ON metadata_entity_field(entity_header_id, section_name, display_order)');
 }
 
 export async function down(knex: Knex): Promise<void> {
   // Drop in reverse order of creation
 
   // Drop indexes
+  await knex.schema.raw('DROP INDEX IF EXISTS idx_metadata_entity_field_section');
   await knex.schema.raw('DROP INDEX IF EXISTS idx_metadata_entity_field_fk');
   await knex.schema.raw('DROP INDEX IF EXISTS idx_metadata_entity_field_searchable');
   await knex.schema.raw('DROP INDEX IF EXISTS idx_metadata_entity_field_display');

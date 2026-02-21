@@ -83,7 +83,7 @@ export class DataService {
     }
 
     // Get total count before pagination
-    const countQuery = connection(entityMetadata.entity_name)
+    let countQuery = connection(entityMetadata.entity_name)
       .clearSelect()
       .count('* as total');
 

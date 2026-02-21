@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EntityService } from '@/lib/metadata/entity-service';
 import { hasPermission, getSecurityContext } from '@/lib/auth/rbac';
+import { getDb } from '@/lib/db/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,10 +46,32 @@ export async function GET(request: NextRequest) {
     // Fetch entities
     const result = await EntityService.list(params);
 
+    // Enrich entities with data_source_name and field_count
+    const entities = await Promise.all(
+      result.entities.map(async (entity) => {
+        // Get datasource name
+        const dataSource = await getDb()('data_sources')
+          .where('id', entity.data_source_id)
+          .select('name')
+          .first();
+
+        // Get field count
+        const [{ count }] = await getDb()('metadata_entity_field')
+          .where('entity_header_id', entity.id)
+          .count('* as count');
+
+        return {
+          ...entity,
+          data_source_name: dataSource?.name,
+          field_count: count,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
       data: {
-        entities: result.entities,
+        entities,
         total: result.total,
         page: params.page,
         limit: params.limit,

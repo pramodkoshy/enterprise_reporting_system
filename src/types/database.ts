@@ -39,7 +39,8 @@ export interface DataSource {
   client_type: DatabaseClientType;
   connection_config: string;
   is_active: boolean;
-  is_editable?: boolean;  // NEW - Allow CRUD operations on entity data
+  is_editable?: boolean;  // Allow CRUD operations on entity data
+  is_inspected?: boolean;  // Whether schema has been inspected
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -745,7 +746,8 @@ export interface MetadataEntityField {
   is_display_field: boolean;
   is_searchable: boolean;
   display_order?: number;
-  relationship_ui_type?: 'dropdown' | 'popup' | null;  // FK UI configuration
+  section_name?: string | null;  // Group fields into visual sections
+  relationship_ui_type?: 'dropdown' | 'popup' | 'tab' | null;  // FK UI configuration
   created_at: string;
   updated_at: string;
 }

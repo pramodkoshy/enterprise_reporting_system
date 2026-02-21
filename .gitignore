@@ -3,6 +3,14 @@ node_modules/
 .pnp
 .pnp.js
 
+# Bun
+bun.lockb
+
+# Package manager locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # Testing
 coverage/
 
@@ -22,6 +30,7 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+bun-debug.log*
 
 # Local env files
 .env

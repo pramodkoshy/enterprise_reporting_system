@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # stop.sh - Stop the Enterprise Reporting System development server
+# Powered by Bun
 
 PORT=${1:-4050}
 
 echo "=========================================="
 echo "Enterprise Reporting System - Stop"
+echo "Powered by Bun"
 echo "=========================================="
 echo ""
 

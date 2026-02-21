@@ -256,7 +256,10 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     await db<DataSource>('data_sources')
       .where('id', id)
       .update({
+        is_deleted: true,
         is_active: false,
+        deleted_at: new Date().toISOString(),
+        deleted_by: session.user.id,
         updated_at: new Date().toISOString(),
       } as any);
 

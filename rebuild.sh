@@ -2,11 +2,13 @@
 
 # rebuild.sh - Clean and rebuild the Enterprise Reporting System
 # This script clears all build artifacts and reinstalls dependencies
+# Powered by Bun
 
 set -e  # Exit on error
 
 echo "=========================================="
 echo "Enterprise Reporting System - Rebuild"
+echo "Powered by Bun"
 echo "=========================================="
 echo ""
 
@@ -22,21 +24,21 @@ rm -rf node_modules
 echo "✓ Cleared node_modules directory"
 echo ""
 
-# Step 3: Clear package-lock.json
-echo "Step 3: Clearing package-lock.json..."
-rm -f package-lock.json
-echo "✓ Cleared package-lock.json"
+# Step 3: Clear bun.lockb and package-lock.json
+echo "Step 3: Clearing lock files..."
+rm -f bun.lockb package-lock.json
+echo "✓ Cleared lock files"
 echo ""
 
-# Step 4: Install dependencies
-echo "Step 4: Installing dependencies..."
-npm install
+# Step 4: Install dependencies with Bun
+echo "Step 4: Installing dependencies with Bun..."
+bun install
 echo "✓ Dependencies installed"
 echo ""
 
 # Step 5: Create production build (optional)
 echo "Step 5: Creating production build..."
-npm run build
+bun run build
 echo "✓ Production build created"
 echo ""
 
@@ -48,4 +50,4 @@ echo "To start the development server, run:"
 echo "  ./start.sh"
 echo ""
 echo "To start the production server, run:"
-echo "  npm start"
+echo "  bun start"

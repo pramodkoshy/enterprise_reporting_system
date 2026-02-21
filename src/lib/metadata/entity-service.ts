@@ -100,14 +100,6 @@ export class EntityQueryBuilder {
   }
 
   /**
-   * Execute query and return first result or null
-   */
-  async first(): Promise<MetadataEntityHeader | null> {
-    const results = await this.query.select('*').limit(1);
-    return results[0] || null;
-  }
-
-  /**
    * Execute query with count
    */
   async withCount(): Promise<{ entities: MetadataEntityHeader[]; total: number }> {

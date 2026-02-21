@@ -3,6 +3,7 @@ set -e
 
 echo "========================================"
 echo "Enterprise Reporting System - Entrypoint"
+echo "Powered by Bun"
 echo "========================================"
 
 ensure_directories() {
@@ -11,13 +12,13 @@ ensure_directories() {
 
 run_migrations() {
   echo "Running database migrations..."
-  node -e "
-    const knex = require('knex');
-    const fs = require('fs');
-    
-    const migrationsDir = fs.existsSync('/app/migrations') ? '/app/migrations' : '/app/src/lib/db/migrations';
-    const seedsDir = fs.existsSync('/app/seeds') ? '/app/seeds' : '/app/src/lib/db/seeds';
-    
+  bun -e "
+    import knex from 'knex';
+    import { existsSync } from 'fs';
+
+    const migrationsDir = existsSync('/app/migrations') ? '/app/migrations' : '/app/src/lib/db/migrations';
+    const seedsDir = existsSync('/app/seeds') ? '/app/seeds' : '/app/src/lib/db/seeds';
+
     const db = knex({
       client: 'better-sqlite3',
       connection: { filename: process.env.DATABASE_PATH || '/app/data/config.sqlite' },
@@ -28,7 +29,7 @@ run_migrations() {
         afterCreate: (conn, cb) => { conn.pragma('foreign_keys = ON'); cb(); }
       }
     });
-    
+
     db.migrate.latest()
       .then(() => { console.log('Migrations complete'); return db.seed.run(); })
       .then(() => { console.log('Seeds complete'); process.exit(0); })
@@ -50,4 +51,4 @@ fi
 echo "Starting application..."
 echo "========================================"
 
-exec su-exec nextjs:nodejs node server.js
+exec su-exec bunuser:bun bun server.js

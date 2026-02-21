@@ -435,6 +435,69 @@ export class ApiTestHelpers {
   }
 
   /**
+   * List data sources (alias for getDataSources)
+   */
+  async listDataSources() {
+    return this.getDataSources();
+  }
+
+  /**
+   * Inspect datasource schema
+   */
+  async inspectSchema(dataSourceId: string) {
+    return await this.authenticatedRequest('POST', `/api/data-sources/${dataSourceId}/inspect`);
+  }
+
+  /**
+   * Get metadata entities for a datasource
+   */
+  async getMetadataEntities(dataSourceId: string, params?: {
+    include_hidden?: boolean;
+    is_active?: boolean;
+  }) {
+    const queryString = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+    return await this.authenticatedRequest('GET', `/api/metadata/entities${queryString}`);
+  }
+
+  /**
+   * Reset inspection state for testing
+   */
+  async resetInspectionState(dataSourceId: string) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cookie': this.authCookie,
+      'x-test-mode': 'true',
+    };
+
+    return await this.request.post('/api/test/sql/execute', {
+      headers,
+      data: JSON.stringify({
+        sql: `UPDATE data_sources SET is_inspected = 0 WHERE id = '${dataSourceId}'`,
+        dataSourceId,
+      }),
+    });
+  }
+
+  /**
+   * Clear metadata entities for testing
+   */
+  async clearMetadataEntities(dataSourceId: string) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Cookie': this.authCookie,
+      'x-test-mode': 'true',
+    };
+
+    return await this.request.post('/api/test/sql/execute', {
+      headers,
+      data: JSON.stringify({
+        sql: `DELETE FROM metadata_entity_field WHERE entity_header_id IN (SELECT id FROM metadata_entity_header WHERE data_source_id = '${dataSourceId}'); DELETE FROM metadata_entity_header WHERE data_source_id = '${dataSourceId}'`,
+        dataSourceId,
+      }),
+    });
+  }
+
+  /**
    * Helper to extract response data
    */
   static async extractJson<T = any>(response: APIResponse): Promise<T> {

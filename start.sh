@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # start.sh - Start the Enterprise Reporting System development server
+# Powered by Bun
 
 PORT=${1:-4050}
 
 echo "=========================================="
 echo "Enterprise Reporting System - Start"
+echo "Powered by Bun"
 echo "=========================================="
 echo ""
 
@@ -19,8 +21,8 @@ fi
 echo "Starting development server on port $PORT..."
 echo ""
 
-# Start the dev server
-npm run dev -- --port $PORT
+# Start the dev server with Bun
+bun run dev
 
 echo ""
 echo "Server stopped."
