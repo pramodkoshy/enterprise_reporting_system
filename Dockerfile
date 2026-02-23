@@ -31,6 +31,12 @@ RUN bun run build:migrations
 # Compile TypeScript seeds to JavaScript
 RUN bun run build:seeds
 
+# Run database migrations during build (Node.js available in builder)
+# This creates the database schema that will be copied to the runner
+RUN mkdir -p /app/data && \
+    bunx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
+    echo "Migrations completed during build"
+
 # Build Next.js application
 # Disable telemetry and font optimization during build (font fetch may fail in Docker)
 ENV NEXT_TELEMETRY_DISABLED=1 \
@@ -42,15 +48,12 @@ FROM oven/bun:1.3-alpine AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies for better-sqlite3
-# Include Node.js for running migrations (better-sqlite3 not supported in Bun)
+# Install runtime dependencies
 RUN apk add --no-cache \
     wget \
     openssl \
     sqlite \
-    su-exec \
-    nodejs \
-    npm
+    su-exec
 
 # Create non-root user for security
 # Note: 'bun' group already exists in base image, so we just add the user
@@ -75,6 +78,9 @@ COPY --from=builder --chown=bunuser:bunuser /app/node_modules ./node_modules
 # Copy migrations and seeds directories for database setup
 COPY --from=builder --chown=bunuser:bunuser /app/dist/migrations /app/migrations
 COPY --from=builder --chown=bunuser:bunuser /app/dist/seeds /app/seeds
+
+# Copy initialized database from builder (migrations run during build)
+COPY --from=builder --chown=bunuser:bunuser /app/data/config.sqlite /app/data/config.sqlite
 
 # Copy knex CLI and knexfile for runtime migrations
 COPY --from=builder --chown=bunuser:bunuser /app/node_modules/knex/bin/cli.js /app/node_modules/.bin/knex
