@@ -51,7 +51,9 @@ RUN apk add --no-cache \
 
 # Create non-root user for security
 # Note: 'bun' group already exists in base image, so we just add the user
-RUN adduser --system --uid 1001 bunuser || true
+RUN adduser --system --uid 1001 bunuser || true && \
+    addgroup -g 1001 bunuser || true && \
+    adduser bunuser bunuser || true
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
