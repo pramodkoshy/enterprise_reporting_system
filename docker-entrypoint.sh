@@ -12,29 +12,36 @@ ensure_directories() {
 
 run_migrations() {
   echo "Running database migrations..."
-  bun -e "
-    import knex from 'knex';
-    import { existsSync } from 'fs';
+  # Use node to run migrations since better-sqlite3 is not supported in Bun
+  # Node.js should be available for running knex
+  if command -v node >/dev/null 2>&1; then
+    node -e "
+      const knex = require('knex');
+      const { existsSync } = require('fs');
 
-    const migrationsDir = existsSync('/app/migrations') ? '/app/migrations' : '/app/src/lib/db/migrations';
-    const seedsDir = existsSync('/app/seeds') ? '/app/seeds' : '/app/src/lib/db/seeds';
+      const migrationsDir = existsSync('/app/migrations') ? '/app/migrations' : '/app/src/lib/db/migrations';
+      const seedsDir = existsSync('/app/seeds') ? '/app/seeds' : '/app/src/lib/db/seeds';
 
-    const db = knex({
-      client: 'better-sqlite3',
-      connection: { filename: process.env.DATABASE_PATH || '/app/data/config.sqlite' },
-      useNullAsDefault: true,
-      migrations: { directory: migrationsDir },
-      seeds: { directory: seedsDir },
-      pool: {
-        afterCreate: (conn, cb) => { conn.pragma('foreign_keys = ON'); cb(); }
-      }
-    });
+      const db = knex({
+        client: 'better-sqlite3',
+        connection: { filename: process.env.DATABASE_PATH || '/app/data/config.sqlite' },
+        useNullAsDefault: true,
+        migrations: { directory: migrationsDir },
+        seeds: { directory: seedsDir },
+        pool: {
+          afterCreate: (conn, cb) => { conn.pragma('foreign_keys = ON'); cb(); }
+        }
+      });
 
-    db.migrate.latest()
-      .then(() => { console.log('Migrations complete'); return db.seed.run(); })
-      .then(() => { console.log('Seeds complete'); process.exit(0); })
-      .catch(e => { console.error('Migration error:', e.message); process.exit(1); });
-  "
+      db.migrate.latest()
+        .then(() => { console.log('Migrations complete'); return db.seed.run(); })
+        .then(() => { console.log('Seeds complete'); process.exit(0); })
+        .catch(e => { console.error('Migration error:', e.message); process.exit(1); });
+    "
+  else
+    echo "Warning: Node.js not available, skipping migrations"
+    echo "Migrations should be run during build time"
+  fi
 }
 
 if [ ! -f /app/data/.initialized ]; then
