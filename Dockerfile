@@ -17,7 +17,7 @@ RUN apk add --no-cache \
     sqlite
 
 # Copy package files and application files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 COPY . .
 
 # Install ALL dependencies (including dev dependencies needed for build)
@@ -50,37 +50,37 @@ RUN apk add --no-cache \
     su-exec
 
 # Create non-root user for security
-RUN addgroup --system --gid 1001 bun && \
-    adduser --system --uid 1001 bunuser
+# Note: 'bun' group already exists in base image, so we just add the user
+RUN adduser --system --uid 1001 bunuser || true
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/bun.lockb ./bun.lockb
+COPY --from=builder /app/bun.lock ./bun.lock
 
 # Copy built application
-COPY --from=builder --chown=bunuser:bun /app/.next/standalone ./
-COPY --from=builder --chown=bunuser:bun /app/.next/static ./.next/static
+COPY --from=builder --chown=bunuser:bunuser /app/.next/standalone ./
+COPY --from=builder --chown=bunuser:bunuser /app/.next/static ./.next/static
 
 # IMPORTANT: Copy all dependencies from builder
 # The Next.js standalone build already optimizes what's needed, but we still need
 # some modules that aren't included (like knex and its dependencies for migrations)
-COPY --from=builder --chown=bunuser:bun /app/node_modules ./node_modules
+COPY --from=builder --chown=bunuser:bunuser /app/node_modules ./node_modules
 
 # Copy migrations and seeds directories for database setup
-COPY --from=builder --chown=bunuser:bun /app/dist/migrations /app/migrations
-COPY --from=builder --chown=bunuser:bun /app/dist/seeds /app/seeds
+COPY --from=builder --chown=bunuser:bunuser /app/dist/migrations /app/migrations
+COPY --from=builder --chown=bunuser:bunuser /app/dist/seeds /app/seeds
 
 # Copy knex CLI and knexfile for runtime migrations
-COPY --from=builder --chown=bunuser:bun /app/node_modules/knex/bin/cli.js /app/node_modules/.bin/knex
-COPY --from=builder --chown=bunuser:bun /app/src/lib/db/knexfile.ts /app/src/lib/db/knexfile.ts
+COPY --from=builder --chown=bunuser:bunuser /app/node_modules/knex/bin/cli.js /app/node_modules/.bin/knex
+COPY --from=builder --chown=bunuser:bunuser /app/src/lib/db/knexfile.ts /app/src/lib/db/knexfile.ts
 
 # Copy entrypoint script
-COPY --from=builder --chown=bunuser:bun /app/docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY --from=builder --chown=bunuser:bunuser /app/docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # Create required directories with correct permissions
 RUN mkdir -p /app/data /app/job-outputs /app/uploads /app/logs /app/data/uploads && \
-    chown -R bunuser:bun /app/data /app/job-outputs /app/uploads /app/logs && \
+    chown -R bunuser:bunuser /app/data /app/job-outputs /app/uploads /app/logs && \
     chmod +x /app/docker-entrypoint.sh
 
 # Copy Sakila demo database (if exists)

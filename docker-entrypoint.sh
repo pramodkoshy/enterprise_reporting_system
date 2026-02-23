@@ -51,4 +51,4 @@ fi
 echo "Starting application..."
 echo "========================================"
 
-exec su-exec bunuser:bun bun server.js
+exec su-exec bunuser:bunuser bun server.js
