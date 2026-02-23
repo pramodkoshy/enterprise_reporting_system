@@ -15,7 +15,7 @@ const nextConfig = {
   },
 
   experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3', 'knex', '@mastra/core', '@copilotkit/runtime', 'antlr4ng'],
+    serverComponentsExternalPackages: ['knex', '@mastra/core', '@copilotkit/runtime', 'antlr4ng', 'better-sqlite3'],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -42,8 +42,7 @@ const nextConfig = {
         })
       );
 
-      // Ensure better-sqlite3 native module is properly bundled
-      // This is critical for Alpine/Docker builds and Bun runtime
+      // Externalize better-sqlite3 - handled via serverComponentsExternalPackages
       config.externals = config.externals || [];
       config.externals.push({
         'better-sqlite3': 'commonjs better-sqlite3',

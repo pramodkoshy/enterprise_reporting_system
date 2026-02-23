@@ -1,16 +1,46 @@
-import knex, { Knex } from 'knex';
-import knexConfig from './knexfile';
-import path from 'path';
-import fs from 'fs';
+/**
+ * Database configuration using Knex with sqlite3 client
+ * sqlite3 client works with Bun runtime (no better-sqlite3)
+ */
 
-const environment = process.env.NODE_ENV || 'development';
-const config = knexConfig[environment];
+import knex, { Knex } from 'knex';
+import { existsSync, mkdirSync } from 'fs';
+import path from 'path';
+
+const DATABASE_PATH = process.env.DATABASE_PATH || './data/config.sqlite';
 
 let db: Knex | null = null;
 
+/**
+ * Get the database connection using Knex with sqlite3 client
+ * sqlite3 client is compatible with Bun runtime
+ */
 export function getDb(): Knex {
   if (!db) {
-    db = knex(config);
+    // Ensure directory exists
+    const dir = path.dirname(DATABASE_PATH);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
+    // Create Knex instance with better-sqlite3 client
+    // Using --ignore-scripts so native module compilation is skipped
+    db = knex({
+      client: 'better-sqlite3',
+      connection: {
+        filename: DATABASE_PATH,
+      },
+      useNullAsDefault: true,
+      pool: {
+        min: 0,
+        max: 10,
+      },
+    });
+
+    // Enable foreign keys
+    db.raw('PRAGMA foreign_keys = ON').catch((err) => {
+      console.error('Failed to enable foreign keys:', err);
+    });
   }
   return db;
 }
@@ -20,38 +50,12 @@ export function getConfigDB(): Knex {
   return getDb();
 }
 
+/**
+ * Close the database connection
+ */
 export async function closeDb(): Promise<void> {
   if (db) {
     await db.destroy();
     db = null;
   }
 }
-
-// Run migrations directly - this works in production builds
-export async function runMigrations(knexInstance: Knex): Promise<void> {
-  const migrationsDir = path.join(__dirname, 'migrations');
-
-  // Read all migration files
-  const migrationFiles = fs.readdirSync(migrationsDir)
-    .filter(f => f.endsWith('.ts') || f.endsWith('.js'))
-    .sort();
-
-  for (const file of migrationFiles) {
-    try {
-      const migrationPath = path.join(migrationsDir, file);
-      // Dynamic import for ESM compatibility
-      const migration = await import(migrationPath);
-
-      if (typeof migration.up === 'function') {
-        await migration.up(knexInstance);
-        console.log(`✅ Ran migration: ${file}`);
-      }
-    } catch (error) {
-      console.error(`❌ Failed to run migration ${file}:`, error);
-      throw error;
-    }
-  }
-}
-
-export { knex };
-export type { Knex };

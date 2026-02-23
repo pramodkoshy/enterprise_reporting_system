@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    // Create knex instance for SQLite
+    // Create knex instance for SQLite using better-sqlite3 client
     const knexInstance = knex({
       client: 'better-sqlite3',
       connection: {

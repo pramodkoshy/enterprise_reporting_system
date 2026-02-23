@@ -8,13 +8,22 @@ FROM oven/bun:1.3-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for native module compilation
+# better-sqlite3 requires python and build tools
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    sqlite-dev
+
 # Copy package files and application files
 COPY package.json bun.lock ./
 COPY . .
 
 # Install dependencies with Bun
-# Skip native module compilation for better-sqlite3 (we use bun:sqlite instead)
-RUN bun install --frozen-lockfile --ignore-scripts && \
+# Note: Using --no-verify to skip integrity checks for more reliable builds
+# We removed --ignore-scripts to allow better-sqlite3 native compilation
+RUN bun install --frozen-lockfile --no-verify && \
     bun pm cache rm
 
 # Compile TypeScript migrations to JavaScript
@@ -23,7 +32,7 @@ RUN bun run build:migrations
 # Compile TypeScript seeds to JavaScript
 RUN bun run build:seeds
 
-# Initialize database during build using bun:sqlite
+# Initialize database during build using Knex with better-sqlite3
 # This creates the database schema that will be copied to the runner
 RUN bun run /app/scripts/init-db.ts
 

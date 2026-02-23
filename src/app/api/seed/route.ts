@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'config.sqlite');
 
-    // Create knex instance for SQLite
+    // Create knex instance for SQLite using better-sqlite3 client
     const knexInstance = knex({
       client: 'better-sqlite3',
       connection: {
