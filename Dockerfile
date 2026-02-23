@@ -3,30 +3,18 @@
 # Production Dockerfile - Powered by Bun
 # ==========================================
 
-# Build stage - Use Node.js for better-sqlite3 compatibility
-FROM node:20-alpine AS builder
+# Build stage - Pure Bun, no Node.js
+FROM oven/bun:1.3-alpine AS builder
 
 WORKDIR /app
-
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache \
-    python3 \
-    py3-setuptools \
-    make \
-    g++ \
-    sqlite
-
-# Install Bun globally in the builder
-RUN npm install -g bun
 
 # Copy package files and application files
 COPY package.json bun.lock ./
 COPY . .
 
-# Install ALL dependencies (including dev dependencies needed for build)
-# Use npm instead of bun for better-sqlite3 native compilation
-RUN npm install && \
-    npm cache clean --force
+# Install dependencies with Bun
+RUN bun install --frozen-lockfile && \
+    bun pm cache rm
 
 # Compile TypeScript migrations to JavaScript
 RUN bun run build:migrations
@@ -34,12 +22,9 @@ RUN bun run build:migrations
 # Compile TypeScript seeds to JavaScript
 RUN bun run build:seeds
 
-# Run database migrations during build (Node.js available in builder)
+# Initialize database during build using bun:sqlite
 # This creates the database schema that will be copied to the runner
-RUN mkdir -p /app/data && \
-    DATABASE_PATH=/app/data/config.sqlite npx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
-    ls -la /app/data/ && \
-    echo "Migrations completed during build"
+RUN bun run /app/scripts/init-db.ts
 
 # Build Next.js application
 # Disable telemetry and font optimization during build (font fetch may fail in Docker)
