@@ -13,7 +13,8 @@ COPY package.json bun.lock ./
 COPY . .
 
 # Install dependencies with Bun
-RUN bun install --frozen-lockfile && \
+# Skip native module compilation for better-sqlite3 (we use bun:sqlite instead)
+RUN bun install --frozen-lockfile --ignore-scripts && \
     bun pm cache rm
 
 # Compile TypeScript migrations to JavaScript
