@@ -3,8 +3,8 @@
 # Production Dockerfile - Powered by Bun
 # ==========================================
 
-# Build stage
-FROM oven/bun:1.3-alpine AS builder
+# Build stage - Use Node.js for better-sqlite3 compatibility
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -15,6 +15,9 @@ RUN apk add --no-cache \
     make \
     g++ \
     sqlite
+
+# Install Bun globally in the builder
+RUN npm install -g bun
 
 # Copy package files and application files
 COPY package.json bun.lock ./
@@ -34,7 +37,7 @@ RUN bun run build:seeds
 # Run database migrations during build (Node.js available in builder)
 # This creates the database schema that will be copied to the runner
 RUN mkdir -p /app/data && \
-    bunx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
+    npx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
     echo "Migrations completed during build"
 
 # Build Next.js application
