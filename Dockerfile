@@ -25,7 +25,7 @@ COPY . .
 
 # Install ALL dependencies (including dev dependencies needed for build)
 # Use npm instead of bun for better-sqlite3 native compilation
-RUN npm ci && \
+RUN npm install && \
     npm cache clean --force
 
 # Compile TypeScript migrations to JavaScript
@@ -37,7 +37,7 @@ RUN bun run build:seeds
 # Run database migrations during build (Node.js available in builder)
 # This creates the database schema that will be copied to the runner
 RUN mkdir -p /app/data && \
-    npx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
+    DATABASE_PATH=/app/data/config.sqlite npx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
     ls -la /app/data/ && \
     echo "Migrations completed during build"
 
