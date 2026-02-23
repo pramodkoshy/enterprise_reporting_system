@@ -24,9 +24,9 @@ COPY package.json bun.lock ./
 COPY . .
 
 # Install ALL dependencies (including dev dependencies needed for build)
-# Rebuild better-sqlite3 from source to ensure it's compiled for Alpine/musl
-RUN bun install --frozen-lockfile && \
-    bun pm cache rm
+# Use npm instead of bun for better-sqlite3 native compilation
+RUN npm ci && \
+    npm cache clean --force
 
 # Compile TypeScript migrations to JavaScript
 RUN bun run build:migrations
@@ -38,6 +38,7 @@ RUN bun run build:seeds
 # This creates the database schema that will be copied to the runner
 RUN mkdir -p /app/data && \
     npx knex migrate:latest --knexfile src/lib/db/knexfile.ts && \
+    ls -la /app/data/ && \
     echo "Migrations completed during build"
 
 # Build Next.js application
