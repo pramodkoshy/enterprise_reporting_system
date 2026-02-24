@@ -427,6 +427,132 @@ bun run db:migrate:make -- descriptive_name
 bun run db:migrate
 ```
 
+## Database Schema
+
+Key tables created by migrations in `src/lib/db/migrations/`:
+
+| Table | Purpose |
+|-------|---------|
+| `users` | User accounts with auth credentials and profile |
+| `roles` | Role definitions with JSON-encoded permissions |
+| `user_roles` | Many-to-many join between users and roles |
+| `data_sources` | External database connections (encrypted config) |
+| `saved_queries` | SQL queries linked to data sources |
+| `report_definitions` | Report config with column/filter/sort/export settings |
+| `chart_definitions` | Chart config with type, data mapping, and styling |
+| `dashboard_layouts` | Dashboard layout configs (React Grid Layout format) |
+| `dashboard_widgets` | Individual widgets placed on dashboards |
+| `job_definitions` | Scheduled job definitions (cron-based) |
+| `job_executions` | Job execution history with status and results |
+| `resource_permissions` | Fine-grained permissions for all resources |
+| `audit_log` | Audit trail of user actions |
+| `filter_definitions` | Reusable filters with query templates |
+| `report_filters` | Join table linking filters to reports |
+| `chart_filters` | Join table linking filters to charts |
+| `ds_roles` | Data source-specific role definitions |
+| `ds_user_roles` | Data source role assignments |
+| `ds_entity_permissions` | Entity-level permissions (table/view access control) |
+| `ds_schema_cache` | Cached schema introspection results |
+| `metadata_entity_header` | Metadata registry for discovered tables/views |
+| `metadata_entity_field` | Field-level metadata for entity columns |
+| `email_templates` | Email template definitions |
+| `notification_config` | Notification configuration |
+| `export_history` | Export operation logs |
+| `email_delivery_log` | Email delivery tracking |
+
+## API Response Format
+
+All API routes follow a consistent response pattern:
+
+```typescript
+// Success response
+{
+  success: true,
+  data: {
+    items?: T[],             // For list endpoints
+    meta?: {                 // Pagination metadata
+      total: number,
+      page: number,
+      pageSize: number,
+      totalPages: number
+    }
+  }
+}
+
+// Error response
+{
+  success: false,
+  error: {
+    code: string,            // UNAUTHORIZED | FORBIDDEN | INVALID_INPUT | SERVER_ERROR
+    message: string
+  }
+}
+```
+
+**HTTP status codes**: 200 (success), 201 (created), 400 (bad request), 401 (unauthorized), 403 (forbidden), 500 (server error).
+
+## Authentication & Authorization in API Routes
+
+All API routes check authentication via NextAuth:
+
+```typescript
+const session = await auth();
+if (!session?.user) {
+  return NextResponse.json(
+    { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
+    { status: 401 }
+  );
+}
+```
+
+The session object contains: `user.id`, `user.email`, `user.roles[]`, `user.permissions[]`.
+
+**Authorization layers:**
+- **RBAC**: `hasPermission(context, 'resource:action')` from `@/lib/auth/rbac`
+- **Resource permissions**: `filterAccessibleResources(userId, items, resourceType, action)` from `@/lib/permissions/permissions`
+- **Data source RBAC**: Entity-level permissions (select/insert/update/delete) with column restrictions and row filters via `@/lib/permissions/ds-rbac`
+- **Audit logging**: `logAudit({ userId, action, resourceType, resourceId, details })` from `@/lib/security/audit`
+
+## Pagination Utilities
+
+Helper functions in `src/lib/config/pagination.ts`:
+
+```typescript
+import { paginationConfig, validatePageSize, calculateOffset, buildSqlPagination, createPaginationMeta } from '@/lib/config/pagination';
+
+// Config values
+paginationConfig.defaultPageSize    // 50
+paginationConfig.maxPageSize        // 1000
+paginationConfig.dataTablePageSize  // 500
+paginationConfig.exportPageSize     // 1000
+
+// Helpers
+validatePageSize(size)                          // Clamps to [1, maxPageSize]
+calculateOffset(page, pageSize)                 // (page - 1) * pageSize
+buildSqlPagination(page?, pageSize?)            // Returns { limit, offset }
+createPaginationMeta(page, pageSize, totalRows) // Returns PaginationMeta object
+```
+
+SQL Editor has separate config: `sqlEditorConfig.serverPageSize` (500), `sqlEditorConfig.maxClientRows` (5000).
+
+## Key Type Definitions
+
+Main types in `src/types/database.ts`:
+
+- **Core**: `User`, `Role`, `UserRole`, `DataSource`, `SavedQuery`
+- **Reporting**: `ReportDefinition`, `ColumnDefinition`, `ChartDefinition`, `ChartConfig`
+- **Dashboards**: `DashboardLayout`, `DashboardWidget`, `WidgetConfig`
+- **Jobs**: `JobDefinition`, `JobExecution`, `JobNotificationConfig`
+- **Permissions**: `ResourcePermission`, `PermissionLevel` (view|edit|execute|admin)
+- **Data Source RBAC**: `DsRole`, `DsUserRole`, `DsEntityPermission`
+- **Formatting**: `FormatterDefinition`, `ConditionalFormat`, `CellRendererType`
+- **Filters**: `FilterDefinition`, `FilterOperator`, `FilterFieldType`
+- **Charts**: `ChartType` (bar|line|area|pie|scatter|composed), `AggregationType`
+- **Metadata**: `MetadataEntityHeader`, `MetadataEntityField`
+- **NL Query**: `NlQueryPipelineResult`, `NlAccessCheckResult`
+
+API request/response types are in `src/types/api.ts`.
+
 ## Pre-commit Checklist
 
 Before committing, run:
