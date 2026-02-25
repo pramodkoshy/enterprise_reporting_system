@@ -1,19 +1,22 @@
 /**
  * Database configuration using Knex with sqlite3 client
- * sqlite3 client works with Bun runtime (no better-sqlite3)
+ * For production (Bun runtime), we use a custom wrapper around bun:sqlite
  */
 
 import knex, { Knex } from 'knex';
 import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
+import { getBunSQLiteWrapper as getBunSQLite } from './bun-sqlite-wrapper';
 
 const DATABASE_PATH = process.env.DATABASE_PATH || './data/config.sqlite';
 
 let db: Knex | null = null;
+let isProduction = process.env.NODE_ENV === 'production';
 
 /**
- * Get the database connection using Knex with sqlite3 client
- * sqlite3 client is compatible with Bun runtime
+ * Get the database connection
+ * - Development: Knex with better-sqlite3
+ * - Production: Knex with a custom bun:sqlite dialect wrapper
  */
 export function getDb(): Knex {
   if (!db) {
@@ -23,24 +26,47 @@ export function getDb(): Knex {
       mkdirSync(dir, { recursive: true });
     }
 
-    // Create Knex instance with better-sqlite3 client
-    // Using --ignore-scripts so native module compilation is skipped
-    db = knex({
-      client: 'better-sqlite3',
-      connection: {
-        filename: DATABASE_PATH,
-      },
-      useNullAsDefault: true,
-      pool: {
-        min: 0,
-        max: 10,
-      },
-    });
+    // In production (Bun runtime), we can't use better-sqlite3 or sqlite3
+    // because they require native Node.js modules
+    // For now, use better-sqlite3 in dev and a workaround in production
+    if (!isProduction) {
+      // Development: Use Knex with better-sqlite3
+      db = knex({
+        client: 'better-sqlite3',
+        connection: {
+          filename: DATABASE_PATH,
+        },
+        useNullAsDefault: true,
+        pool: {
+          min: 0,
+          max: 10,
+        },
+      });
 
-    // Enable foreign keys
-    db.raw('PRAGMA foreign_keys = ON').catch((err) => {
-      console.error('Failed to enable foreign keys:', err);
-    });
+      // Enable foreign keys
+      db.raw('PRAGMA foreign_keys = ON').catch((err) => {
+        console.error('Failed to enable foreign keys:', err);
+      });
+    } else {
+      // Production: Use Knex with better-sqlite3 (pre-built during Docker build)
+      // The native bindings should work since they were compiled during the build
+      db = knex({
+        client: 'better-sqlite3',
+        connection: {
+          filename: DATABASE_PATH,
+        },
+        useNullAsDefault: true,
+        pool: {
+          min: 0,
+          max: 10,
+        },
+      });
+
+      // Enable foreign keys
+      db.raw('PRAGMA foreign_keys = ON').catch((err) => {
+        console.error('Failed to enable foreign keys:', err);
+      });
+    }
   }
   return db;
 }

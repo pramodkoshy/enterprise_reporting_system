@@ -48,7 +48,7 @@ const config: { [key: string]: Knex.Config } = {
   },
 
   production: {
-    client: "better-sqlite3", // Use sqlite3 which works with bun:sqlite wrapper
+    client: "sqlite3", // Use sqlite3 for Bun runtime compatibility
     connection: {
       filename: process.env.DATABASE_PATH || "/app/data/config.sqlite",
     },

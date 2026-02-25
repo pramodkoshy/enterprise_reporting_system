@@ -12,6 +12,7 @@ WORKDIR /app
 # better-sqlite3 requires python and build tools
 RUN apk add --no-cache \
     python3 \
+    py3-pip \
     make \
     g++ \
     sqlite-dev
@@ -48,11 +49,14 @@ FROM oven/bun:1.3-alpine AS runner
 WORKDIR /app
 
 # Install runtime dependencies
+# Node.js is required to load native modules (better-sqlite3)
 RUN apk add --no-cache \
     wget \
     openssl \
     sqlite \
-    su-exec
+    su-exec \
+    nodejs \
+    npm
 
 # Create non-root user for security
 # Note: 'bun' group already exists in base image, so we just add the user

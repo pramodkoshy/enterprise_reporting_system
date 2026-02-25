@@ -3,7 +3,7 @@ set -e
 
 echo "========================================"
 echo "Enterprise Reporting System - Entrypoint"
-echo "Powered by Bun"
+echo "Starting with Node.js for native module compatibility"
 echo "========================================"
 
 ensure_directories() {
@@ -14,9 +14,11 @@ ensure_directories() {
 ensure_directories
 
 # Note: Migrations are run during the build process in the builder stage
-# We skip migrations at runtime to avoid better-sqlite3 compatibility issues with Bun
+# At runtime, we use Node.js to load native modules (better-sqlite3)
+# Bun runtime doesn't support native Node.js modules
 
 echo "Starting application..."
 echo "========================================"
 
-exec su-exec bunuser:bunuser bun server.js
+# Use Node.js instead of Bun to load native modules
+exec su-exec bunuser:bunuser node server.js

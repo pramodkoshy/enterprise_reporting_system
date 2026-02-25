@@ -7,6 +7,9 @@
 # uploads it to the VPS, and starts the containers
 # with Nginx reverse proxy and optional SSL.
 #
+# The script will also upload the local database
+# from data/config.sqlite if it exists.
+#
 # Usage:
 #   chmod +x deploy-to-hostinger.sh
 #   ./deploy-to-hostinger.sh root@148.135.137.110
@@ -91,23 +94,35 @@ echo "Upload complete!"
 
 # Step 4: Upload config files
 echo ""
-echo "[5/7] Uploading configuration files..."
+echo "[5/8] Uploading configuration files..."
 scp "${SCRIPT_DIR}/docker-compose.yml" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/
 scp "${SCRIPT_DIR}/.env.docker.production" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/
 scp "${SCRIPT_DIR}/scripts/backup-hostinger.sh" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/
 echo "Config files uploaded!"
 
-# Step 5: Upload Nginx config
+# Step 5: Upload local database
 echo ""
-echo "[6/7] Uploading Nginx configuration..."
+echo "[6/8] Uploading local database..."
+if [ -f "${SCRIPT_DIR}/data/config.sqlite" ]; then
+    ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${VPS_PATH}/app/data"
+    scp "${SCRIPT_DIR}/data/config.sqlite" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/app/data/
+    echo "Database uploaded!"
+else
+    echo "  Warning: No local database found at ${SCRIPT_DIR}/data/config.sqlite"
+    echo "  Using database from Docker image instead..."
+fi
+
+# Step 6: Upload Nginx config
+echo ""
+echo "[7/8] Uploading Nginx configuration..."
 ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${VPS_PATH}/nginx"
 scp "${SCRIPT_DIR}/nginx/default.conf" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/nginx/
 scp "${SCRIPT_DIR}/nginx/default-http-only.conf" ${VPS_USER}@${VPS_HOST}:${VPS_PATH}/nginx/
 echo "Nginx config uploaded!"
 
-# Step 6: Deploy on VPS
+# Step 7: Deploy on VPS
 echo ""
-echo "[7/7] Deploying on VPS..."
+echo "[8/8] Deploying on VPS..."
 ssh ${VPS_USER}@${VPS_HOST} << DEPLOY_EOF
 set -e
 
